@@ -24,13 +24,14 @@ import {
 } from "@/components/ui/select"
 
 // Planet type configurations
-// Formula: Current Cost = (Total Upgrades × 0.005) + Planet Offset
+// Formula: Next Cost (millions) = (Next Level × step) + Planet Offset
 const PLANET_TYPES = {
   income: {
     label: "Income",
     contributionLabel: "Income",
     facilitiesLabel: "Income Facilities",
     offset: -0.49,
+    stepValue: 5_000,
     valuePerUpgrade: 8_640_000,
   },
   unitProduction: {
@@ -38,7 +39,16 @@ const PLANET_TYPES = {
     contributionLabel: "Unit Production",
     facilitiesLabel: "Production Facilities",
     offset: 10.35,
+    stepValue: 5_000,
     valuePerUpgrade: 2,
+  },
+  defence: {
+    label: "Defence",
+    contributionLabel: "Defence",
+    facilitiesLabel: "Defence Facilities",
+    offset: 0,
+    stepValue: 3_000,
+    valuePerUpgrade: 800000,
   },
 } as const
 
@@ -93,6 +103,15 @@ const formatSmart = (num: number): string => {
   return formatNumber(num)
 }
 
+const roundDownTwoDecimals = (num: number): number => {
+  return Math.floor(num * 100) / 100
+}
+
+const roundDownToMillionCents = (num: number): number => {
+  const inMillions = num / 1_000_000
+  return roundDownTwoDecimals(inMillions) * 1_000_000
+}
+
 export function PlanetUpgradeCalculator() {
   const [isOpen, setIsOpen] = useState(true)
   const [planetType, setPlanetType] = useState<PlanetType>("income")
@@ -101,7 +120,7 @@ export function PlanetUpgradeCalculator() {
   const [results, setResults] = useState<CalculationResults | null>(null)
 
   const config = PLANET_TYPES[planetType]
-  const COST_INCREMENT = 0.005
+  const COST_INCREMENT = config.stepValue / 1_000_000
 
   const calculate = () => {
     const { offset, valuePerUpgrade } = config
@@ -117,7 +136,8 @@ export function PlanetUpgradeCalculator() {
 
     // Calculate current level
     const currentLevel = Math.floor(current / valuePerUpgrade)
-    const startCost = currentLevel * COST_INCREMENT + offset
+    // Costs are based on the next level being purchased.
+    const startCost = (currentLevel + 1) * COST_INCREMENT + offset
 
     // Calculate total cost using arithmetic series formula
     // Sum = (n/2) * (2a + (n-1)d) where a = startCost, d = COST_INCREMENT
@@ -185,7 +205,11 @@ export function PlanetUpgradeCalculator() {
                     {config.label}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  side="bottom"
+                  alignItemWithTrigger={false}
+                  collisionAvoidance={{ side: "none" }}
+                >
                   {Object.entries(PLANET_TYPES).map(([key, value]) => (
                     <SelectItem key={key} value={key}>
                       {value.label}
@@ -255,16 +279,22 @@ export function PlanetUpgradeCalculator() {
                     <div className="text-sm text-muted-foreground mb-1">
                       Total Cost
                     </div>
-                    <div className="text-2xl font-bold" title={formatNumber(results.totalCost)}>
-                      {formatSmart(results.totalCost)}
+                    <div
+                      className="text-2xl font-bold"
+                      title={formatNumber(roundDownToMillionCents(results.totalCost))}
+                    >
+                      {formatSmart(roundDownToMillionCents(results.totalCost))}
                     </div>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-4">
                     <div className="text-sm text-muted-foreground mb-1">
                       Next Upgrade Cost
                     </div>
-                    <div className="text-xl font-bold" title={formatNumber(results.nextUpgradeCost)}>
-                      {formatCompact(results.nextUpgradeCost)}
+                    <div
+                      className="text-xl font-bold"
+                      title={formatNumber(roundDownToMillionCents(results.nextUpgradeCost))}
+                    >
+                      {formatCompact(roundDownToMillionCents(results.nextUpgradeCost))}
                     </div>
                   </div>
                 </div>
