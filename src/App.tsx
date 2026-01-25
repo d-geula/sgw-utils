@@ -16,7 +16,7 @@ export function App() {
         </header>
 
         {/* Main Content - Symmetrical Two Column Layout */}
-        <div className="grid gap-8 lg:grid-cols-2 lg:gap-15">
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
           {/* Left Column */}
           <div className="space-y-8">
             <PlanetUpgradeCalculator />
