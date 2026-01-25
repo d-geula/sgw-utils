@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { Calculator, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -144,15 +144,18 @@ export function PlanetUpgradeCalculator() {
   }
 
   // Clear results when planet type changes
-  const handlePlanetTypeChange = (value: string) => {
-    setPlanetType(value as PlanetType)
+  const handlePlanetTypeChange = (value: PlanetType | null) => {
+    if (!value) {
+      return
+    }
+    setPlanetType(value)
     setResults(null)
   }
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
-        <CollapsibleTrigger asChild>
+        <CollapsibleTrigger className="w-full text-left">
           <CardHeader className="cursor-pointer select-none hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-3">
               <Calculator className="size-5 text-primary shrink-0" />
