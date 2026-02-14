@@ -176,13 +176,13 @@ export function PlanetUpgradeCalculator() {
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
         <CollapsibleTrigger className="w-full text-left">
-          <CardHeader className="cursor-pointer select-none hover:bg-muted/50 transition-colors">
+          <CardHeader className="cursor-pointer select-none transition-colors">
             <div className="flex items-center gap-3">
               <Calculator className="size-5 text-primary shrink-0" />
               <div className="flex-1 min-w-0">
                 <CardTitle>Planet Upgrade Calculator</CardTitle>
                 <CardDescription>
-                  Calculate upgrade costs and projected values
+                  Calculate upgrade costs and projected values for different planet types.
                 </CardDescription>
               </div>
               {isOpen ? (
@@ -230,7 +230,7 @@ export function PlanetUpgradeCalculator() {
                   type="text"
                   value={currentValue}
                   onChange={(e) => setCurrentValue(e.target.value)}
-                  placeholder="Enter current value"
+                  placeholder="Current value"
                 />
               </div>
 
@@ -243,7 +243,7 @@ export function PlanetUpgradeCalculator() {
                   type="text"
                   value={upgradesToBuy}
                   onChange={(e) => setUpgradesToBuy(e.target.value)}
-                  placeholder="Enter number of upgrades"
+                  placeholder="Number of upgrades"
                 />
               </div>
             </div>
