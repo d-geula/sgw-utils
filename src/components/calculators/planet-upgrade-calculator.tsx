@@ -176,7 +176,7 @@ export function PlanetUpgradeCalculator() {
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
         <CollapsibleTrigger className="w-full text-left">
-          <CardHeader className="cursor-pointer select-none transition-colors">
+          <CardHeader className="cursor-pointer select-none">
             <div className="flex items-center gap-3">
               <Calculator className="size-5 text-primary shrink-0" />
               <div className="flex-1 min-w-0">

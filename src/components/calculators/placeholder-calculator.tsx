@@ -30,7 +30,7 @@ export function PlaceholderCalculator({
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className="opacity-60">
         <CollapsibleTrigger className="w-full text-left">
-          <CardHeader className="cursor-pointer select-none transition-colors">
+          <CardHeader className="cursor-pointer select-none">
             <div className="flex items-center gap-3">
               <Construction className="size-5 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0 text-left">

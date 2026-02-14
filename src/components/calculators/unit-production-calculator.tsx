@@ -20,11 +20,13 @@ interface CalculationResults {
   nextUpgradeCost: number
   totalCost: number
   projectedUnitProduction: number
+  productionIncrease: number
 }
 
 const UNIT_PRODUCTION_PER_UPGRADE = 3
 const COST_PER_PRODUCTION_POINT = 5_000
-const BASE_PRODUCTION_OFFSET = 1_000
+const COST_PER_UPGRADE =
+  UNIT_PRODUCTION_PER_UPGRADE * COST_PER_PRODUCTION_POINT
 
 const formatNumber = (num: number): string => {
   return num.toLocaleString("en-US", { maximumFractionDigits: 2 })
@@ -52,8 +54,8 @@ const formatSmart = (num: number): string => {
   return formatNumber(num)
 }
 
-const getUpgradeCost = (unitProduction: number): number => {
-  return (unitProduction - BASE_PRODUCTION_OFFSET) * COST_PER_PRODUCTION_POINT
+const getNextUpgradeCost = (unitProduction: number): number => {
+  return Math.max(0, unitProduction) * COST_PER_PRODUCTION_POINT
 }
 
 export function UnitProductionCalculator() {
@@ -71,16 +73,18 @@ export function UnitProductionCalculator() {
       return
     }
 
-    const firstUpgradeCost = getUpgradeCost(current)
-    const costStep = UNIT_PRODUCTION_PER_UPGRADE * COST_PER_PRODUCTION_POINT
+    const firstUpgradeCost = getNextUpgradeCost(current)
+    const costStep = COST_PER_UPGRADE
     const totalCost = (n / 2) * (2 * firstUpgradeCost + (n - 1) * costStep)
     const projectedUnitProduction = current + n * UNIT_PRODUCTION_PER_UPGRADE
+    const productionIncrease = n * UNIT_PRODUCTION_PER_UPGRADE
     const nextUpgradeCost = firstUpgradeCost + n * costStep
 
     setResults({
       nextUpgradeCost,
       totalCost,
       projectedUnitProduction,
+      productionIncrease,
     })
   }
 
@@ -88,7 +92,7 @@ export function UnitProductionCalculator() {
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
         <CollapsibleTrigger className="w-full text-left">
-          <CardHeader className="cursor-pointer select-none transition-colors">
+          <CardHeader className="cursor-pointer select-none">
             <div className="flex items-center gap-3">
               <Calculator className="size-5 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
@@ -160,7 +164,7 @@ export function UnitProductionCalculator() {
                       className="text-xl font-bold"
                       title={formatNumber(results.nextUpgradeCost)}
                     >
-                      {formatCompact(results.nextUpgradeCost)}
+                      {formatSmart(results.nextUpgradeCost)}
                     </div>
                   </div>
                 </div>
@@ -174,6 +178,12 @@ export function UnitProductionCalculator() {
                     title={formatNumber(results.projectedUnitProduction)}
                   >
                     {formatSmart(results.projectedUnitProduction)}
+                    <span
+                      className="ml-2 text-lg text-green-500"
+                      title={formatNumber(results.productionIncrease)}
+                    >
+                      (+{formatSmart(results.productionIncrease)})
+                    </span>
                   </div>
                 </div>
               </div>

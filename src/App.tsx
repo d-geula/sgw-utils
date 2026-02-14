@@ -1,5 +1,4 @@
 import { PlanetUpgradeCalculator } from "@/components/calculators/planet-upgrade-calculator"
-import { PlaceholderCalculator } from "@/components/calculators/placeholder-calculator"
 import { UnitProductionCalculator } from "@/components/calculators/unit-production-calculator"
 
 export function App() {
@@ -7,7 +6,7 @@ export function App() {
     <div className="relative min-h-screen overflow-hidden bg-[oklch(15.7% 0 0)]">
       <div
         aria-hidden="true"
-        className="noise-[128,50,5] pointer-events-none absolute inset-0 opacity-[0.1]"
+        className="noise-bg pointer-events-none absolute inset-0"
       />
 
       <div className="relative container mx-auto max-w-6xl px-4 py-8">
@@ -28,21 +27,11 @@ export function App() {
           {/* Left Column */}
           <div className="space-y-8">
             <PlanetUpgradeCalculator />
-
-            <PlaceholderCalculator
-              title="Placeholder"
-              description="Coming soon..."
-            />
           </div>
 
           {/* Right Column */}
           <div className="space-y-8">
             <UnitProductionCalculator />
-
-            <PlaceholderCalculator
-              title="Placeholder"
-              description="Coming soon..."
-            />
           </div>
         </div>
       </div>
