@@ -1,5 +1,22 @@
 import { PlanetUpgradeCalculator } from "@/components/calculators/planet-upgrade-calculator"
+import { SkillUpgradeCalculator } from "@/components/calculators/skill-upgrade-calculator"
 import { UnitProductionCalculator } from "@/components/calculators/unit-production-calculator"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+const CATEGORIES = [
+  {
+    id: "resources",
+    title: "Resources",
+    description: "Tools for planning production and resource growth.",
+    calculators: [PlanetUpgradeCalculator, UnitProductionCalculator],
+  },
+  {
+    id: "skills-stats",
+    title: "Skills & Stats",
+    description: "Tools for planning skill progression and stat upgrades.",
+    calculators: [SkillUpgradeCalculator],
+  },
+] as const
 
 export function App() {
   return (
@@ -22,17 +39,27 @@ export function App() {
           </p>
         </header>
 
-        {/* Main Content - Symmetrical Two Column Layout */}
-        <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-          {/* Left Column */}
-          <div className="space-y-8">
-            <PlanetUpgradeCalculator />
-          </div>
+        <div className="space-y-8">
+          {CATEGORIES.map((category) => (
+            <Card key={category.id}>
+              <CardHeader>
+                <CardTitle>{category.title}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {category.description}
+                </p>
+              </CardHeader>
 
-          {/* Right Column */}
-          <div className="space-y-8">
-            <UnitProductionCalculator />
-          </div>
+              <CardContent>
+                <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+                  {category.calculators.map((CalculatorComponent, index) => (
+                    <div key={`${category.id}-${index}`} className="space-y-8">
+                      <CalculatorComponent />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </div>

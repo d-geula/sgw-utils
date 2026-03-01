@@ -59,7 +59,7 @@ const getNextUpgradeCost = (unitProduction: number): number => {
 }
 
 export function UnitProductionCalculator() {
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
   const [currentUnitProduction, setCurrentUnitProduction] = useState("")
   const [upgradesToBuy, setUpgradesToBuy] = useState("")
   const [results, setResults] = useState<CalculationResults | null>(null)
