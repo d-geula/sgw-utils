@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { type FormEvent, useState } from "react"
 import { Calculator, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -138,6 +138,11 @@ export function SkillUpgradeCalculator() {
     }
   }
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    calculate()
+  }
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
@@ -163,98 +168,100 @@ export function SkillUpgradeCalculator() {
 
         <CollapsibleContent>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="upgrade-level">Upgrade Cost at Level X</Label>
-              <Input
-                id="upgrade-level"
-                type="text"
-                value={upgradeLevel}
-                onChange={(e) => setUpgradeLevel(e.target.value)}
-                placeholder="Skill level (0-40)"
-              />
-              <p className="text-xs text-muted-foreground">
-                Uses level X to calculate the cost for upgrading to level X+1.
-              </p>
-              {upgradeError ? (
-                <p className="text-xs text-destructive">{upgradeError}</p>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="upgrade-level">Upgrade Cost at Level X</Label>
+                <Input
+                  id="upgrade-level"
+                  type="text"
+                  value={upgradeLevel}
+                  onChange={(e) => setUpgradeLevel(e.target.value)}
+                  placeholder="Skill level (0-40)"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Uses level X to calculate the cost for upgrading to level X+1.
+                </p>
+                {upgradeError ? (
+                  <p className="text-xs text-destructive">{upgradeError}</p>
+                ) : null}
+              </div>
+
+              <div className="grid items-end gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="current-level">Current Skill Level</Label>
+                  <Input
+                    id="current-level"
+                    type="text"
+                    value={currentLevel}
+                    onChange={(e) => setCurrentLevel(e.target.value)}
+                    placeholder="Current level (0-40)"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="target-level">Target Skill Level</Label>
+                  <Input
+                    id="target-level"
+                    type="text"
+                    value={targetLevel}
+                    onChange={(e) => setTargetLevel(e.target.value)}
+                    placeholder="Target level (0-40)"
+                  />
+                </div>
+              </div>
+
+              {totalError ? (
+                <p className="text-xs text-destructive">{totalError}</p>
               ) : null}
-            </div>
 
-            <div className="grid items-end gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="current-level">Current Skill Level</Label>
-                <Input
-                  id="current-level"
-                  type="text"
-                  value={currentLevel}
-                  onChange={(e) => setCurrentLevel(e.target.value)}
-                  placeholder="Current level (0-40)"
-                />
-              </div>
+              <Button type="submit" className="w-full">
+                Calculate
+              </Button>
 
-              <div className="space-y-2">
-                <Label htmlFor="target-level">Target Skill Level</Label>
-                <Input
-                  id="target-level"
-                  type="text"
-                  value={targetLevel}
-                  onChange={(e) => setTargetLevel(e.target.value)}
-                  placeholder="Target level (0-40)"
-                />
-              </div>
-            </div>
-
-            {totalError ? (
-              <p className="text-xs text-destructive">{totalError}</p>
-            ) : null}
-
-            <Button onClick={calculate} className="w-full">
-              Calculate
-            </Button>
-
-            {(upgradeResult || totalResult) && (
-              <div className="space-y-4 border-t pt-6">
-                {upgradeResult ? (
-                  <div className="rounded-lg bg-muted/50 p-4">
-                    <div className="mb-1 text-sm text-muted-foreground">
-                      Upgrade Cost at Level {upgradeResult.level}
-                    </div>
-                    {upgradeResult.cost === null ? (
-                      <div className="text-xl font-bold">
-                        Max level reached (no further upgrades)
+              {(upgradeResult || totalResult) && (
+                <div className="space-y-4 border-t pt-6">
+                  {upgradeResult ? (
+                    <div className="rounded-lg bg-muted/50 p-4">
+                      <div className="mb-1 text-sm text-muted-foreground">
+                        Upgrade Cost at Level {upgradeResult.level}
                       </div>
-                    ) : (
+                      {upgradeResult.cost === null ? (
+                        <div className="text-xl font-bold">
+                          Max level reached (no further upgrades)
+                        </div>
+                      ) : (
+                        <div
+                          className="text-2xl font-bold"
+                          title={formatNumber(upgradeResult.cost)}
+                        >
+                          {formatCompact(upgradeResult.cost)}
+                          <span className="ml-2 text-lg text-muted-foreground">
+                            (to level {upgradeResult.nextLevel})
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {totalResult ? (
+                    <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
+                      <div className="mb-1 text-sm text-muted-foreground">
+                        Total Cost: Level {totalResult.currentLevel} to {totalResult.targetLevel}
+                      </div>
                       <div
                         className="text-2xl font-bold"
-                        title={formatNumber(upgradeResult.cost)}
+                        title={formatNumber(totalResult.totalCost)}
                       >
-                        {formatCompact(upgradeResult.cost)}
-                        <span className="ml-2 text-lg text-muted-foreground">
-                          (to level {upgradeResult.nextLevel})
-                        </span>
+                        {formatCompact(totalResult.totalCost)}
                       </div>
-                    )}
-                  </div>
-                ) : null}
-
-                {totalResult ? (
-                  <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
-                    <div className="mb-1 text-sm text-muted-foreground">
-                      Total Cost: Level {totalResult.currentLevel} to {totalResult.targetLevel}
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        Upgrades needed: {formatNumber(totalResult.upgradesNeeded)}
+                      </div>
                     </div>
-                    <div
-                      className="text-2xl font-bold"
-                      title={formatNumber(totalResult.totalCost)}
-                    >
-                      {formatCompact(totalResult.totalCost)}
-                    </div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      Upgrades needed: {formatNumber(totalResult.upgradesNeeded)}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
+                  ) : null}
+                </div>
+              )}
+            </form>
           </CardContent>
         </CollapsibleContent>
       </Card>

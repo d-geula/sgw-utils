@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { type FormEvent, useState } from "react"
 import { Calculator, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -88,6 +88,11 @@ export function UnitProductionCalculator() {
     })
   }
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    calculate()
+  }
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
@@ -112,82 +117,84 @@ export function UnitProductionCalculator() {
 
         <CollapsibleContent>
           <CardContent className="space-y-6">
-            <div className="grid items-end gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="current-unit-production">
-                  Current Unit Production
-                </Label>
-                <Input
-                  id="current-unit-production"
-                  type="text"
-                  value={currentUnitProduction}
-                  onChange={(e) => setCurrentUnitProduction(e.target.value)}
-                  placeholder="Current unit production"
-                />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid items-end gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="current-unit-production">
+                    Current Unit Production
+                  </Label>
+                  <Input
+                    id="current-unit-production"
+                    type="text"
+                    value={currentUnitProduction}
+                    onChange={(e) => setCurrentUnitProduction(e.target.value)}
+                    placeholder="Current unit production"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="unit-upgrades">Upgrades to Buy</Label>
+                  <Input
+                    id="unit-upgrades"
+                    type="text"
+                    value={upgradesToBuy}
+                    onChange={(e) => setUpgradesToBuy(e.target.value)}
+                    placeholder="Number of upgrades"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="unit-upgrades">Upgrades to Buy</Label>
-                <Input
-                  id="unit-upgrades"
-                  type="text"
-                  value={upgradesToBuy}
-                  onChange={(e) => setUpgradesToBuy(e.target.value)}
-                  placeholder="Number of upgrades"
-                />
-              </div>
-            </div>
+              <Button type="submit" className="w-full">
+                Calculate
+              </Button>
 
-            <Button onClick={calculate} className="w-full">
-              Calculate
-            </Button>
+              {results && (
+                <div className="space-y-4 border-t pt-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
+                      <div className="mb-1 text-sm text-muted-foreground">
+                        Total Cost
+                      </div>
+                      <div
+                        className="text-2xl font-bold"
+                        title={formatNumber(results.totalCost)}
+                      >
+                        {formatSmart(results.totalCost)}
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-4">
+                      <div className="mb-1 text-sm text-muted-foreground">
+                        Next Upgrade Cost
+                      </div>
+                      <div
+                        className="text-xl font-bold"
+                        title={formatNumber(results.nextUpgradeCost)}
+                      >
+                        {formatSmart(results.nextUpgradeCost)}
+                      </div>
+                    </div>
+                  </div>
 
-            {results && (
-              <div className="space-y-4 border-t pt-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
+                  <div className="rounded-lg bg-chart-3/10 p-4 ring-1 ring-chart-3/20">
                     <div className="mb-1 text-sm text-muted-foreground">
-                      Total Cost
+                      Projected Unit Production
                     </div>
                     <div
                       className="text-2xl font-bold"
-                      title={formatNumber(results.totalCost)}
+                      title={formatNumber(results.projectedUnitProduction)}
                     >
-                      {formatSmart(results.totalCost)}
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-muted/50 p-4">
-                    <div className="mb-1 text-sm text-muted-foreground">
-                      Next Upgrade Cost
-                    </div>
-                    <div
-                      className="text-xl font-bold"
-                      title={formatNumber(results.nextUpgradeCost)}
-                    >
-                      {formatSmart(results.nextUpgradeCost)}
+                      {formatSmart(results.projectedUnitProduction)}
+                      <span
+                        className="ml-2 text-lg text-green-500"
+                        title={formatNumber(results.productionIncrease)}
+                      >
+                        (+{formatSmart(results.productionIncrease)})
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                <div className="rounded-lg bg-chart-3/10 p-4 ring-1 ring-chart-3/20">
-                  <div className="mb-1 text-sm text-muted-foreground">
-                    Projected Unit Production
-                  </div>
-                  <div
-                    className="text-2xl font-bold"
-                    title={formatNumber(results.projectedUnitProduction)}
-                  >
-                    {formatSmart(results.projectedUnitProduction)}
-                    <span
-                      className="ml-2 text-lg text-green-500"
-                      title={formatNumber(results.productionIncrease)}
-                    >
-                      (+{formatSmart(results.productionIncrease)})
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
+              )}
+            </form>
           </CardContent>
         </CollapsibleContent>
       </Card>

@@ -1,3 +1,4 @@
+import { CovertActionCalculator } from "@/components/calculators/covert-action-calculator"
 import { PlanetUpgradeCalculator } from "@/components/calculators/planet-upgrade-calculator"
 import { SkillUpgradeCalculator } from "@/components/calculators/skill-upgrade-calculator"
 import { UnitProductionCalculator } from "@/components/calculators/unit-production-calculator"
@@ -14,7 +15,7 @@ const CATEGORIES = [
     id: "skills-stats",
     title: "Skills & Stats",
     description: "Tools for planning skill progression and stat upgrades.",
-    calculators: [SkillUpgradeCalculator],
+    calculators: [SkillUpgradeCalculator, CovertActionCalculator],
   },
 ] as const
 

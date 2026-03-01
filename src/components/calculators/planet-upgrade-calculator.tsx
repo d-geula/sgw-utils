@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { type FormEvent, useState } from "react"
 import { Calculator, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -172,6 +172,11 @@ export function PlanetUpgradeCalculator() {
     setResults(null)
   }
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    calculate()
+  }
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
@@ -196,122 +201,124 @@ export function PlanetUpgradeCalculator() {
 
         <CollapsibleContent>
           <CardContent className="space-y-6">
-            {/* Planet Type Selector */}
-            <div className="space-y-2">
-              <Label htmlFor="planet-type">Planet Type</Label>
-              <Select value={planetType} onValueChange={handlePlanetTypeChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select planet type">
-                    {config.label}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent
-                  side="bottom"
-                  alignItemWithTrigger={false}
-                  collisionAvoidance={{ side: "none" }}
-                >
-                  {Object.entries(PLANET_TYPES).map(([key, value]) => (
-                    <SelectItem key={key} value={key}>
-                      {value.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Input Fields */}
-            <div className="grid gap-4 sm:grid-cols-2 items-end">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Planet Type Selector */}
               <div className="space-y-2">
-                <Label htmlFor="current-value" className="block min-h-[1.25rem]">
-                  Current Planet {config.contributionLabel}
-                </Label>
-                <Input
-                  id="current-value"
-                  type="text"
-                  value={currentValue}
-                  onChange={(e) => setCurrentValue(e.target.value)}
-                  placeholder="Current value"
-                />
+                <Label htmlFor="planet-type">Planet Type</Label>
+                <Select value={planetType} onValueChange={handlePlanetTypeChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select planet type">
+                      {config.label}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent
+                    side="bottom"
+                    alignItemWithTrigger={false}
+                    collisionAvoidance={{ side: "none" }}
+                  >
+                    {Object.entries(PLANET_TYPES).map(([key, value]) => (
+                      <SelectItem key={key} value={key}>
+                        {value.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="upgrades" className="block min-h-[1.25rem]">
-                  Upgrades to Buy
-                </Label>
-                <Input
-                  id="upgrades"
-                  type="text"
-                  value={upgradesToBuy}
-                  onChange={(e) => setUpgradesToBuy(e.target.value)}
-                  placeholder="Number of upgrades"
-                />
-              </div>
-            </div>
-
-            <Button onClick={calculate} className="w-full">
-              Calculate
-            </Button>
-
-            {/* Results */}
-            {results && (
-              <div className="space-y-4 border-t pt-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-lg bg-muted/50 p-4">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      Current {config.facilitiesLabel}
-                    </div>
-                    <div className="text-2xl font-bold">
-                      {formatNumber(results.currentLevel)}
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-muted/50 p-4">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      Target {config.facilitiesLabel}
-                    </div>
-                    <div className="text-2xl font-bold">
-                      {formatNumber(results.targetLevel)}
-                    </div>
-                  </div>
+              {/* Input Fields */}
+              <div className="grid gap-4 sm:grid-cols-2 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="current-value" className="block min-h-[1.25rem]">
+                    Current Planet {config.contributionLabel}
+                  </Label>
+                  <Input
+                    id="current-value"
+                    type="text"
+                    value={currentValue}
+                    onChange={(e) => setCurrentValue(e.target.value)}
+                    placeholder="Current value"
+                  />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
+                <div className="space-y-2">
+                  <Label htmlFor="upgrades" className="block min-h-[1.25rem]">
+                    Upgrades to Buy
+                  </Label>
+                  <Input
+                    id="upgrades"
+                    type="text"
+                    value={upgradesToBuy}
+                    onChange={(e) => setUpgradesToBuy(e.target.value)}
+                    placeholder="Number of upgrades"
+                  />
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full">
+                Calculate
+              </Button>
+
+              {/* Results */}
+              {results && (
+                <div className="space-y-4 border-t pt-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-lg bg-muted/50 p-4">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Current {config.facilitiesLabel}
+                      </div>
+                      <div className="text-2xl font-bold">
+                        {formatNumber(results.currentLevel)}
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-4">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Target {config.facilitiesLabel}
+                      </div>
+                      <div className="text-2xl font-bold">
+                        {formatNumber(results.targetLevel)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
+                      <div className="text-sm text-muted-foreground mb-1">
+                        Total Cost
+                      </div>
+                      <div
+                        className="text-2xl font-bold"
+                        title={formatNumber(roundDownToMillionCents(results.totalCost))}
+                      >
+                        {formatSmart(roundDownToMillionCents(results.totalCost))}
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-4">
+                      <div className="text-sm text-muted-foreground mb-1">
+                        Next Upgrade Cost
+                      </div>
+                      <div
+                        className="text-xl font-bold"
+                        title={formatNumber(roundDownToMillionCents(results.nextUpgradeCost))}
+                      >
+                        {formatCompact(roundDownToMillionCents(results.nextUpgradeCost))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-chart-3/10 p-4 ring-1 ring-chart-3/20">
                     <div className="text-sm text-muted-foreground mb-1">
-                      Total Cost
+                      Projected Planet {config.contributionLabel}
                     </div>
-                    <div
-                      className="text-2xl font-bold"
-                      title={formatNumber(roundDownToMillionCents(results.totalCost))}
-                    >
-                      {formatSmart(roundDownToMillionCents(results.totalCost))}
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-muted/50 p-4">
-                    <div className="text-sm text-muted-foreground mb-1">
-                      Next Upgrade Cost
-                    </div>
-                    <div
-                      className="text-xl font-bold"
-                      title={formatNumber(roundDownToMillionCents(results.nextUpgradeCost))}
-                    >
-                      {formatCompact(roundDownToMillionCents(results.nextUpgradeCost))}
+                    <div className="text-2xl font-bold" title={formatNumber(results.projectedValue)}>
+                      {formatSmart(results.projectedValue)}
+                      <span className="text-lg text-green-500 ml-2" title={formatNumber(results.valueIncrease)}>
+                        (+{formatSmart(results.valueIncrease)})
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                <div className="rounded-lg bg-chart-3/10 p-4 ring-1 ring-chart-3/20">
-                  <div className="text-sm text-muted-foreground mb-1">
-                    Projected Planet {config.contributionLabel}
-                  </div>
-                  <div className="text-2xl font-bold" title={formatNumber(results.projectedValue)}>
-                    {formatSmart(results.projectedValue)}
-                    <span className="text-lg text-green-500 ml-2" title={formatNumber(results.valueIncrease)}>
-                      (+{formatSmart(results.valueIncrease)})
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
+              )}
+            </form>
           </CardContent>
         </CollapsibleContent>
       </Card>
