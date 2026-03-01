@@ -81,6 +81,7 @@ export function SkillUpgradeCalculator() {
   const [totalResult, setTotalResult] = useState<TotalUpgradeResult | null>(null)
   const [upgradeError, setUpgradeError] = useState<string | null>(null)
   const [totalError, setTotalError] = useState<string | null>(null)
+  const [isTotalCostCopied, setIsTotalCostCopied] = useState(false)
 
   const calculate = () => {
     setUpgradeError(null)
@@ -141,6 +142,21 @@ export function SkillUpgradeCalculator() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     calculate()
+  }
+
+  const copyRawValue = async (value: number) => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(value.toString())
+      setIsTotalCostCopied(true)
+      window.setTimeout(() => {
+        setIsTotalCostCopied(false)
+      }, 1500)
+    } catch {
+      setIsTotalCostCopied(false)
+    }
   }
 
   return (
@@ -244,15 +260,31 @@ export function SkillUpgradeCalculator() {
                   ) : null}
 
                   {totalResult ? (
-                    <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
+                    <div
+                      className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 cursor-pointer"
+                      onClick={() => {
+                        void copyRawValue(totalResult.totalCost)
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault()
+                          void copyRawValue(totalResult.totalCost)
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
                       <div className="mb-1 text-sm text-muted-foreground">
                         Total Cost: Level {totalResult.currentLevel} to {totalResult.targetLevel}
                       </div>
                       <div
                         className="text-2xl font-bold"
-                        title={formatNumber(totalResult.totalCost)}
+                        title={`${totalResult.totalCost} (click to copy raw)`}
                       >
                         {formatCompact(totalResult.totalCost)}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {isTotalCostCopied ? "Copied raw value" : "Click to copy raw value"}
                       </div>
                       <div className="mt-1 text-sm text-muted-foreground">
                         Upgrades needed: {formatNumber(totalResult.upgradesNeeded)}

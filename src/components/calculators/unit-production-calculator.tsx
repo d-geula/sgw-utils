@@ -63,6 +63,7 @@ export function UnitProductionCalculator() {
   const [currentUnitProduction, setCurrentUnitProduction] = useState("")
   const [upgradesToBuy, setUpgradesToBuy] = useState("")
   const [results, setResults] = useState<CalculationResults | null>(null)
+  const [isTotalCostCopied, setIsTotalCostCopied] = useState(false)
 
   const calculate = () => {
     const current = parseFloat(currentUnitProduction.replace(/,/g, "")) || 0
@@ -91,6 +92,21 @@ export function UnitProductionCalculator() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     calculate()
+  }
+
+  const copyRawValue = async (value: number) => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(value.toString())
+      setIsTotalCostCopied(true)
+      window.setTimeout(() => {
+        setIsTotalCostCopied(false)
+      }, 1500)
+    } catch {
+      setIsTotalCostCopied(false)
+    }
   }
 
   return (
@@ -151,15 +167,31 @@ export function UnitProductionCalculator() {
               {results && (
                 <div className="space-y-4 border-t pt-6">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
+                    <div
+                      className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 cursor-pointer"
+                      onClick={() => {
+                        void copyRawValue(results.totalCost)
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault()
+                          void copyRawValue(results.totalCost)
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
                       <div className="mb-1 text-sm text-muted-foreground">
                         Total Cost
                       </div>
                       <div
                         className="text-2xl font-bold"
-                        title={formatNumber(results.totalCost)}
+                        title={`${results.totalCost} (click to copy raw)`}
                       >
                         {formatSmart(results.totalCost)}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {isTotalCostCopied ? "Copied raw value" : "Click to copy raw value"}
                       </div>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-4">

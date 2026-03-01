@@ -118,6 +118,7 @@ export function PlanetUpgradeCalculator() {
   const [currentValue, setCurrentValue] = useState("")
   const [upgradesToBuy, setUpgradesToBuy] = useState("")
   const [results, setResults] = useState<CalculationResults | null>(null)
+  const [isTotalCostCopied, setIsTotalCostCopied] = useState(false)
 
   const config = PLANET_TYPES[planetType]
   const COST_INCREMENT = config.stepValue / 1_000_000
@@ -175,6 +176,21 @@ export function PlanetUpgradeCalculator() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     calculate()
+  }
+
+  const copyRawValue = async (value: number) => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(value.toString())
+      setIsTotalCostCopied(true)
+      window.setTimeout(() => {
+        setIsTotalCostCopied(false)
+      }, 1500)
+    } catch {
+      setIsTotalCostCopied(false)
+    }
   }
 
   return (
@@ -281,15 +297,31 @@ export function PlanetUpgradeCalculator() {
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
+                    <div
+                      className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 cursor-pointer"
+                      onClick={() => {
+                        void copyRawValue(roundDownToMillionCents(results.totalCost))
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault()
+                          void copyRawValue(roundDownToMillionCents(results.totalCost))
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
                       <div className="text-sm text-muted-foreground mb-1">
                         Total Cost
                       </div>
                       <div
                         className="text-2xl font-bold"
-                        title={formatNumber(roundDownToMillionCents(results.totalCost))}
+                        title={`${roundDownToMillionCents(results.totalCost)} (click to copy raw)`}
                       >
                         {formatSmart(roundDownToMillionCents(results.totalCost))}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {isTotalCostCopied ? "Copied raw value" : "Click to copy raw value"}
                       </div>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-4">
