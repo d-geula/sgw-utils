@@ -5,6 +5,7 @@ import {
 } from "@/components/calculators/covert-action-calculator"
 import { PlanetUpgradeCalculator } from "@/components/calculators/planet-upgrade-calculator"
 import { SkillUpgradeCalculator } from "@/components/calculators/skill-upgrade-calculator"
+import { IncomeCalculator } from "@/components/calculators/income-calculator"
 import { UnitProductionCalculator } from "@/components/calculators/unit-production-calculator"
 import {
   DefenceActionCalculator,
@@ -33,6 +34,11 @@ const CATEGORIES = [
     title: "Stats",
     description: "Tools for planning stat upgrades.",
     calculators: [
+      {
+        id: "income",
+        title: "Income",
+        Component: IncomeCalculator,
+      },
       {
         id: "strike-action",
         title: "Strike Action",
@@ -125,7 +131,7 @@ export function App() {
       />
 
       <div className="relative flex min-h-screen flex-col lg:flex-row">
-        <aside className="border-b border-sidebar-border bg-sidebar/90 px-4 py-5 text-sidebar-foreground backdrop-blur lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:shrink-0 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
+        <aside className="border-b border-sidebar-border bg-sidebar/90 px-4 py-5 text-sidebar-foreground backdrop-blur lg:min-h-screen lg:w-72 lg:shrink-0 lg:self-stretch lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
           <header className="mb-6">
             <a
               href="/"
