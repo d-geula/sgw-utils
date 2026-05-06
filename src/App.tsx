@@ -29,6 +29,33 @@ interface CategoryDefinition {
 
 const CATEGORIES = [
   {
+    id: "stats",
+    title: "Stats",
+    description: "Tools for planning stat upgrades.",
+    calculators: [
+      {
+        id: "strike-action",
+        title: "Strike Action",
+        Component: StrikeActionCalculator,
+      },
+      {
+        id: "defence-action",
+        title: "Defence Action",
+        Component: DefenceActionCalculator,
+      },
+      {
+        id: "covert-action",
+        title: "Covert Action",
+        Component: CovertActionCalculator,
+      },
+      {
+        id: "anti-covert-action",
+        title: "Anti-Covert Action",
+        Component: AntiCovertActionCalculator,
+      },
+    ],
+  },
+  {
     id: "resources",
     title: "Resources",
     description: "Tools for planning production and resource growth.",
@@ -54,33 +81,6 @@ const CATEGORIES = [
         id: "skill-upgrade",
         title: "Skill Upgrade",
         Component: SkillUpgradeCalculator,
-      },
-    ],
-  },
-  {
-    id: "stats",
-    title: "Stats",
-    description: "Tools for planning stat upgrades.",
-    calculators: [
-      {
-        id: "covert-action",
-        title: "Covert Action",
-        Component: CovertActionCalculator,
-      },
-      {
-        id: "anti-covert-action",
-        title: "Anti-Covert Action",
-        Component: AntiCovertActionCalculator,
-      },
-      {
-        id: "strike-action",
-        title: "Strike Action",
-        Component: StrikeActionCalculator,
-      },
-      {
-        id: "defence-action",
-        title: "Defence Action",
-        Component: DefenceActionCalculator,
       },
     ],
   },
