@@ -58,8 +58,12 @@ const getNextUpgradeCost = (unitProduction: number): number => {
   return Math.max(0, unitProduction) * COST_PER_PRODUCTION_POINT
 }
 
-export function UnitProductionCalculator() {
-  const [isOpen, setIsOpen] = useState(false)
+interface CalculatorProps {
+  defaultOpen?: boolean
+}
+
+export function UnitProductionCalculator({ defaultOpen = false }: CalculatorProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   const [currentUnitProduction, setCurrentUnitProduction] = useState("")
   const [upgradesToBuy, setUpgradesToBuy] = useState("")
   const [results, setResults] = useState<CalculationResults | null>(null)

@@ -51,6 +51,10 @@ interface WeaponActionCalculatorConfig {
   fieldIdPrefix: string
 }
 
+interface CalculatorProps {
+  defaultOpen?: boolean
+}
+
 const formatNumber = (num: number): string => {
   return num.toLocaleString("en-US", { maximumFractionDigits: 2 })
 }
@@ -108,10 +112,12 @@ const getBaseAction = (
 
 function WeaponActionCalculator({
   config,
+  defaultOpen = false,
 }: {
   config: WeaponActionCalculatorConfig
+  defaultOpen?: boolean
 }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   const [normalUnits, setNormalUnits] = useState("")
   const [superUnits, setSuperUnits] = useState("")
   const [weapons, setWeapons] = useState("")
@@ -431,9 +437,10 @@ function WeaponActionCalculator({
   )
 }
 
-export function StrikeActionCalculator() {
+export function StrikeActionCalculator({ defaultOpen = false }: CalculatorProps) {
   return (
     <WeaponActionCalculator
+      defaultOpen={defaultOpen}
       config={{
         title: "Strike Action",
         description:
@@ -454,9 +461,10 @@ export function StrikeActionCalculator() {
   )
 }
 
-export function DefenceActionCalculator() {
+export function DefenceActionCalculator({ defaultOpen = false }: CalculatorProps) {
   return (
     <WeaponActionCalculator
+      defaultOpen={defaultOpen}
       config={{
         title: "Defence Action",
         description:

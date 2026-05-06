@@ -112,8 +112,12 @@ const roundDownToMillionCents = (num: number): number => {
   return roundDownTwoDecimals(inMillions) * 1_000_000
 }
 
-export function PlanetUpgradeCalculator() {
-  const [isOpen, setIsOpen] = useState(false)
+interface CalculatorProps {
+  defaultOpen?: boolean
+}
+
+export function PlanetUpgradeCalculator({ defaultOpen = false }: CalculatorProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   const [planetType, setPlanetType] = useState<PlanetType>("income")
   const [currentValue, setCurrentValue] = useState("")
   const [upgradesToBuy, setUpgradesToBuy] = useState("")

@@ -71,8 +71,12 @@ const parseIntegerInput = (value: string): number | null => {
   return Number.parseInt(normalized, 10)
 }
 
-export function SkillUpgradeCalculator() {
-  const [isOpen, setIsOpen] = useState(false)
+interface CalculatorProps {
+  defaultOpen?: boolean
+}
+
+export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   const [upgradeLevel, setUpgradeLevel] = useState("")
   const [currentLevel, setCurrentLevel] = useState("")
   const [targetLevel, setTargetLevel] = useState("")

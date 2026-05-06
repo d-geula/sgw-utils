@@ -56,6 +56,10 @@ interface ActionCalculatorConfig {
   getBaseAction: (units: number, level: number) => number
 }
 
+interface CalculatorProps {
+  defaultOpen?: boolean
+}
+
 const formatNumber = (num: number): string => {
   return num.toLocaleString("en-US", { maximumFractionDigits: 2 })
 }
@@ -87,8 +91,14 @@ const parseNonNegativeNumber = (value: string): number | null => {
   return parsed
 }
 
-function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
-  const [isOpen, setIsOpen] = useState(false)
+function ActionCalculator({
+  config,
+  defaultOpen = false,
+}: {
+  config: ActionCalculatorConfig
+  defaultOpen?: boolean
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   const [units, setUnits] = useState("")
   const [level, setLevel] = useState("")
   const [techBonus, setTechBonus] = useState<TechBonusKey>("none")
@@ -379,9 +389,10 @@ function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
   )
 }
 
-export function CovertActionCalculator() {
+export function CovertActionCalculator({ defaultOpen = false }: CalculatorProps) {
   return (
     <ActionCalculator
+      defaultOpen={defaultOpen}
       config={{
         title: "Covert Action",
         description:
@@ -401,9 +412,10 @@ export function CovertActionCalculator() {
   )
 }
 
-export function AntiCovertActionCalculator() {
+export function AntiCovertActionCalculator({ defaultOpen = false }: CalculatorProps) {
   return (
     <ActionCalculator
+      defaultOpen={defaultOpen}
       config={{
         title: "Anti-Covert Action",
         description:

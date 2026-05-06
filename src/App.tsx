@@ -1,3 +1,4 @@
+import { useMemo, useState, type ComponentType } from "react"
 import {
   AntiCovertActionCalculator,
   CovertActionCalculator,
@@ -9,77 +10,225 @@ import {
   DefenceActionCalculator,
   StrikeActionCalculator,
 } from "@/components/calculators/weapon-action-calculator"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+
+type CalculatorComponent = ComponentType<{ defaultOpen?: boolean }>
+
+interface CalculatorDefinition {
+  id: string
+  title: string
+  Component: CalculatorComponent
+}
+
+interface CategoryDefinition {
+  id: string
+  title: string
+  description: string
+  calculators: CalculatorDefinition[]
+}
 
 const CATEGORIES = [
   {
     id: "resources",
     title: "Resources",
     description: "Tools for planning production and resource growth.",
-    calculators: [PlanetUpgradeCalculator, UnitProductionCalculator],
+    calculators: [
+      {
+        id: "planet-upgrade",
+        title: "Planet Upgrade",
+        Component: PlanetUpgradeCalculator,
+      },
+      {
+        id: "unit-production",
+        title: "Unit Production",
+        Component: UnitProductionCalculator,
+      },
+    ],
   },
   {
     id: "skills",
     title: "Skills",
     description: "Tools for planning skill progression.",
-    calculators: [SkillUpgradeCalculator],
+    calculators: [
+      {
+        id: "skill-upgrade",
+        title: "Skill Upgrade",
+        Component: SkillUpgradeCalculator,
+      },
+    ],
   },
   {
     id: "stats",
     title: "Stats",
     description: "Tools for planning stat upgrades.",
     calculators: [
-      CovertActionCalculator,
-      AntiCovertActionCalculator,
-      StrikeActionCalculator,
-      DefenceActionCalculator,
+      {
+        id: "covert-action",
+        title: "Covert Action",
+        Component: CovertActionCalculator,
+      },
+      {
+        id: "anti-covert-action",
+        title: "Anti-Covert Action",
+        Component: AntiCovertActionCalculator,
+      },
+      {
+        id: "strike-action",
+        title: "Strike Action",
+        Component: StrikeActionCalculator,
+      },
+      {
+        id: "defence-action",
+        title: "Defence Action",
+        Component: DefenceActionCalculator,
+      },
     ],
   },
-] as const
+] satisfies CategoryDefinition[]
+
+type Selection =
+  | { type: "category"; id: string }
+  | { type: "calculator"; id: string }
 
 export function App() {
+  const [selection, setSelection] = useState<Selection>({
+    type: "category",
+    id: CATEGORIES[0].id,
+  })
+
+  const selectedCategory = useMemo(() => {
+    if (selection.type === "category") {
+      return CATEGORIES.find((category) => category.id === selection.id)
+    }
+
+    return CATEGORIES.find((category) =>
+      category.calculators.some((calculator) => calculator.id === selection.id),
+    )
+  }, [selection])
+
+  const selectedCalculator = useMemo<CalculatorDefinition | undefined>(() => {
+    if (selection.type !== "calculator") {
+      return undefined
+    }
+
+    return CATEGORIES.flatMap((category) => category.calculators).find(
+      (calculator) => calculator.id === selection.id,
+    )
+  }, [selection])
+  const SelectedCalculatorComponent = selectedCalculator?.Component
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[oklch(15.7% 0 0)]">
+    <div className="dark relative min-h-screen overflow-hidden bg-background">
       <div
         aria-hidden="true"
         className="noise-bg pointer-events-none absolute inset-0"
       />
 
-      <div className="relative container mx-auto max-w-6xl px-4 py-8">
-        {/* Header */}
-        <header className="mb-16 text-center">
-          <h1 className="text-4xl font-bold tracking-tight">
-            <a href="/" className="transition-colors hover:text-primary">
+      <div className="relative flex min-h-screen flex-col lg:flex-row">
+        <aside className="border-b border-sidebar-border bg-sidebar/90 px-4 py-5 text-sidebar-foreground backdrop-blur lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:shrink-0 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
+          <header className="mb-6">
+            <a
+              href="/"
+              className="block text-xl font-bold tracking-tight transition-colors hover:text-sidebar-primary"
+              onClick={(event) => {
+                event.preventDefault()
+                setSelection({ type: "category", id: CATEGORIES[0].id })
+              }}
+            >
               StarGateWars Utils
             </a>
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            A collection of calculators and utilities
-          </p>
-        </header>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Calculators and utilities
+            </p>
+          </header>
 
-        <div className="space-y-8">
-          {CATEGORIES.map((category) => (
-            <Card key={category.id}>
-              <CardHeader>
-                <CardTitle>{category.title}</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {category.description}
-                </p>
-              </CardHeader>
+          <nav aria-label="Calculator navigation" className="flex flex-col gap-4">
+            {CATEGORIES.map((category) => (
+              <div key={category.id} className="flex flex-col gap-1">
+                <Button
+                  type="button"
+                  variant={
+                    selection.type === "category" && selection.id === category.id
+                      ? "secondary"
+                      : "ghost"
+                  }
+                  className="h-auto justify-start px-2 py-2 text-left"
+                  onClick={() =>
+                    setSelection({ type: "category", id: category.id })
+                  }
+                >
+                  {category.title}
+                </Button>
 
-              <CardContent>
-                <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-                  {category.calculators.map((CalculatorComponent, index) => (
-                    <div key={`${category.id}-${index}`} className="space-y-8">
-                      <CalculatorComponent />
-                    </div>
+                <div className="flex flex-col gap-1 pl-3">
+                  {category.calculators.map((calculator) => (
+                    <Button
+                      key={calculator.id}
+                      type="button"
+                      variant={
+                        selection.type === "calculator" &&
+                        selection.id === calculator.id
+                          ? "outline"
+                          : "ghost"
+                      }
+                      size="sm"
+                      className="h-auto justify-start px-2 py-1.5 text-left text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() =>
+                        setSelection({
+                          type: "calculator",
+                          id: calculator.id,
+                        })
+                      }
+                    >
+                      {calculator.title}
+                    </Button>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-10 xl:px-16 2xl:px-24">
+          {selectedCalculator ? (
+            <section className="mx-auto w-full max-w-5xl 2xl:max-w-6xl">
+              <div className="mb-6">
+                <p className="text-sm text-muted-foreground">
+                  {selectedCategory?.title}
+                </p>
+                <h1 className="mt-1 text-3xl font-bold tracking-tight">
+                  {selectedCalculator.title}
+                </h1>
+              </div>
+
+              {SelectedCalculatorComponent ? (
+                <SelectedCalculatorComponent
+                  key={selectedCalculator.id}
+                  defaultOpen
+                />
+              ) : null}
+            </section>
+          ) : selectedCategory ? (
+            <section className="mx-auto w-full max-w-6xl 2xl:max-w-7xl">
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {selectedCategory.title}
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                  {selectedCategory.description}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-8">
+                {selectedCategory.calculators.map((calculator) => (
+                  <div key={calculator.id}>
+                    <calculator.Component />
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </main>
       </div>
     </div>
   )
