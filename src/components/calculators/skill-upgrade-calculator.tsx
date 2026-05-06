@@ -206,7 +206,7 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
                 ) : null}
               </div>
 
-              <div className="grid items-end gap-4 sm:grid-cols-2">
+              <div className="grid items-end gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="space-y-2">
                   <Label htmlFor="current-level">Current Skill Level</Label>
                   <Input

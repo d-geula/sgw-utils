@@ -138,7 +138,7 @@ export function UnitProductionCalculator({ defaultOpen = false }: CalculatorProp
         <CollapsibleContent>
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid items-end gap-4 sm:grid-cols-2">
+              <div className="grid items-end gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="space-y-2">
                   <Label htmlFor="current-unit-production">
                     Current Unit Production

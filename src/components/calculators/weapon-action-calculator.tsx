@@ -230,7 +230,7 @@ function WeaponActionCalculator({
         <CollapsibleContent>
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              <div className="grid items-start gap-4 sm:grid-cols-2">
+              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={`${config.fieldIdPrefix}-normal-units`}>
                     Normal/Merc Units
@@ -258,7 +258,7 @@ function WeaponActionCalculator({
                 </div>
               </div>
 
-              <div className="grid items-start gap-4 sm:grid-cols-2">
+              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={`${config.fieldIdPrefix}-weapons`}>
                     Weapons
@@ -305,12 +305,9 @@ function WeaponActionCalculator({
                 </div>
               </div>
 
-              <div className="grid items-start gap-4 sm:grid-cols-2">
+              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="flex flex-col gap-2">
-                  <Label
-                    htmlFor={`${config.fieldIdPrefix}-race-bonus`}
-                    className="flex min-h-10 items-end"
-                  >
+                  <Label htmlFor={`${config.fieldIdPrefix}-race-bonus`}>
                     Race Bonus (%)
                   </Label>
                   <Input
@@ -323,10 +320,7 @@ function WeaponActionCalculator({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <Label
-                    htmlFor={`${config.fieldIdPrefix}-current-action`}
-                    className="flex min-h-10 items-end"
-                  >
+                  <Label htmlFor={`${config.fieldIdPrefix}-current-action`}>
                     {config.currentLabel}
                   </Label>
                   <Input

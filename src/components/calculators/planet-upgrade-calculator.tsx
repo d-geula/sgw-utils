@@ -246,7 +246,7 @@ export function PlanetUpgradeCalculator({ defaultOpen = false }: CalculatorProps
               </div>
 
               {/* Input Fields */}
-              <div className="grid gap-4 sm:grid-cols-2 items-end">
+              <div className="grid items-end gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="space-y-2">
                   <Label htmlFor="current-value" className="block min-h-[1.25rem]">
                     Current Planet {config.contributionLabel}

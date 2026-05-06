@@ -205,7 +205,7 @@ function ActionCalculator({
         <CollapsibleContent>
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              <div className="grid items-start gap-4 sm:grid-cols-2">
+              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={`${config.fieldIdPrefix}-units`}>
                     {config.unitLabel}
@@ -233,7 +233,7 @@ function ActionCalculator({
                 </div>
               </div>
 
-              <div className="grid items-start gap-4 sm:grid-cols-2">
+              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={`${config.fieldIdPrefix}-tech-bonus`}>
                     Tech Bonus
