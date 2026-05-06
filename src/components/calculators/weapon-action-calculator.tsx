@@ -1,8 +1,6 @@
 import { type FormEvent, type KeyboardEvent, useState } from "react"
 import { Calculator, Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Card,
   CardContent,
@@ -15,6 +13,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -31,29 +31,24 @@ interface CalculationResults {
   raceBonusAction: number
 }
 
-const FINAL_MODIFIER = 2
+interface TechBonusOption {
+  label: string
+  bonusNumerator: number
+  bonusDenominator: number
+}
 
-const TECH_BONUS_OPTIONS = {
-  none: { label: "None", multiplier: 1 },
-  tier1: { label: "Tier 1", multiplier: 1.2 },
-  tier2: { label: "Tier 2", multiplier: 1.56 },
-} as const
+type TechBonusKey = "none" | "tier1" | "tier2"
 
-type TechBonusKey = keyof typeof TECH_BONUS_OPTIONS
-
-interface ActionCalculatorConfig {
+interface WeaponActionCalculatorConfig {
   title: string
   description: string
-  unitLabel: string
-  unitPlaceholder: string
-  levelLabel: string
-  levelPlaceholder: string
+  weaponStrength: number
+  techBonusOptions: Record<TechBonusKey, TechBonusOption>
   currentLabel: string
   currentPlaceholder: string
   calculatedLabel: string
   baseLabel: string
   fieldIdPrefix: string
-  getBaseAction: (units: number, level: number) => number
 }
 
 const formatNumber = (num: number): string => {
@@ -87,10 +82,39 @@ const parseNonNegativeNumber = (value: string): number | null => {
   return parsed
 }
 
-function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
+const parseNonNegativeNumberOrZero = (value: string): number | null => {
+  const normalized = value.replace(/,/g, "").trim()
+  if (!normalized) {
+    return 0
+  }
+
+  return parseNonNegativeNumber(value)
+}
+
+const getBaseAction = (
+  normalUnits: number,
+  superUnits: number,
+  weapons: number,
+  weaponStrength: number,
+) => {
+  const superWeaponCount = Math.min(superUnits, weapons)
+  const normalWeaponCount = Math.min(normalUnits, Math.max(weapons - superUnits, 0))
+
+  return (
+    superWeaponCount * weaponStrength * 20 +
+    normalWeaponCount * weaponStrength * 10
+  )
+}
+
+function WeaponActionCalculator({
+  config,
+}: {
+  config: WeaponActionCalculatorConfig
+}) {
   const [isOpen, setIsOpen] = useState(false)
-  const [units, setUnits] = useState("")
-  const [level, setLevel] = useState("")
+  const [normalUnits, setNormalUnits] = useState("")
+  const [superUnits, setSuperUnits] = useState("")
+  const [weapons, setWeapons] = useState("")
   const [techBonus, setTechBonus] = useState<TechBonusKey>("none")
   const [raceBonusPercent, setRaceBonusPercent] = useState("")
   const [currentAction, setCurrentAction] = useState("")
@@ -101,13 +125,16 @@ function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
   const calculate = () => {
     setError(null)
 
-    const parsedUnits = parseNonNegativeNumber(units)
-    const parsedLevel = parseNonNegativeNumber(level)
+    const parsedNormalUnits = parseNonNegativeNumberOrZero(normalUnits)
+    const parsedSuperUnits = parseNonNegativeNumberOrZero(superUnits)
+    const parsedWeapons = parseNonNegativeNumberOrZero(weapons)
 
-    if (parsedUnits === null || parsedLevel === null) {
-      setError(
-        `Enter valid non-negative numbers for ${config.unitLabel.toLowerCase()} and ${config.levelLabel.toLowerCase()}.`,
-      )
+    if (
+      parsedNormalUnits === null ||
+      parsedSuperUnits === null ||
+      parsedWeapons === null
+    ) {
+      setError("Enter valid non-negative numbers for units and weapons.")
       setResults(null)
       return
     }
@@ -128,16 +155,18 @@ function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
       return
     }
 
-    const baseAction = config.getBaseAction(parsedUnits, parsedLevel)
-
-    const techMultiplier = TECH_BONUS_OPTIONS[techBonus].multiplier
-    const techBonusAction = baseAction * (techMultiplier - 1)
-    const raceBonusAction = (baseAction + techBonusAction) * (raceBonusValue / 100)
-    const totalAction = Math.floor(
-      (baseAction + techBonusAction + raceBonusAction + parsedUnits) *
-        FINAL_MODIFIER,
+    const baseAction = getBaseAction(
+      parsedNormalUnits,
+      parsedSuperUnits,
+      parsedWeapons,
+      config.weaponStrength,
     )
-
+    const techBonusOption = config.techBonusOptions[techBonus]
+    const techBonusAction =
+      (baseAction * techBonusOption.bonusNumerator) /
+      techBonusOption.bonusDenominator
+    const raceBonusAction = (baseAction + techBonusAction) * (raceBonusValue / 100)
+    const totalAction = Math.floor(baseAction + techBonusAction + raceBonusAction)
     const difference =
       parsedCurrentAction === null ? null : totalAction - parsedCurrentAction
 
@@ -197,33 +226,46 @@ function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               <div className="grid items-start gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor={`${config.fieldIdPrefix}-units`}>
-                    {config.unitLabel}
+                  <Label htmlFor={`${config.fieldIdPrefix}-normal-units`}>
+                    Normal/Merc Units
                   </Label>
                   <Input
-                    id={`${config.fieldIdPrefix}-units`}
+                    id={`${config.fieldIdPrefix}-normal-units`}
                     type="text"
-                    value={units}
-                    onChange={(e) => setUnits(e.target.value)}
-                    placeholder={config.unitPlaceholder}
+                    value={normalUnits}
+                    onChange={(e) => setNormalUnits(e.target.value)}
+                    placeholder="Normal/merc unit count"
                   />
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor={`${config.fieldIdPrefix}-level`}>
-                    {config.levelLabel}
+                  <Label htmlFor={`${config.fieldIdPrefix}-super-units`}>
+                    Super Units
                   </Label>
                   <Input
-                    id={`${config.fieldIdPrefix}-level`}
+                    id={`${config.fieldIdPrefix}-super-units`}
                     type="text"
-                    value={level}
-                    onChange={(e) => setLevel(e.target.value)}
-                    placeholder={config.levelPlaceholder}
+                    value={superUnits}
+                    onChange={(e) => setSuperUnits(e.target.value)}
+                    placeholder="Super unit count"
                   />
                 </div>
               </div>
 
               <div className="grid items-start gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor={`${config.fieldIdPrefix}-weapons`}>
+                    Weapons
+                  </Label>
+                  <Input
+                    id={`${config.fieldIdPrefix}-weapons`}
+                    type="text"
+                    value={weapons}
+                    onChange={(e) => setWeapons(e.target.value)}
+                    placeholder="Weapon count (best)"
+                  />
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={`${config.fieldIdPrefix}-tech-bonus`}>
                     Tech Bonus
@@ -237,7 +279,7 @@ function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
                       className="w-full"
                     >
                       <SelectValue placeholder="Select tech bonus">
-                        {TECH_BONUS_OPTIONS[techBonus].label}
+                        {config.techBonusOptions[techBonus].label}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent
@@ -245,17 +287,24 @@ function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
                       alignItemWithTrigger={false}
                       collisionAvoidance={{ side: "none" }}
                     >
-                      {Object.entries(TECH_BONUS_OPTIONS).map(([key, option]) => (
-                        <SelectItem key={key} value={key}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
+                      {Object.entries(config.techBonusOptions).map(
+                        ([key, option]) => (
+                          <SelectItem key={key} value={key}>
+                            {option.label}
+                          </SelectItem>
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
+              <div className="grid items-start gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor={`${config.fieldIdPrefix}-race-bonus`}>
+                  <Label
+                    htmlFor={`${config.fieldIdPrefix}-race-bonus`}
+                    className="flex min-h-10 items-end"
+                  >
                     Race Bonus (%)
                   </Label>
                   <Input
@@ -266,19 +315,22 @@ function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
                     placeholder="e.g. 25"
                   />
                 </div>
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`${config.fieldIdPrefix}-current-action`}>
-                  {config.currentLabel}
-                </Label>
-                <Input
-                  id={`${config.fieldIdPrefix}-current-action`}
-                  type="text"
-                  value={currentAction}
-                  onChange={(e) => setCurrentAction(e.target.value)}
-                  placeholder={config.currentPlaceholder}
-                />
+                <div className="flex flex-col gap-2">
+                  <Label
+                    htmlFor={`${config.fieldIdPrefix}-current-action`}
+                    className="flex min-h-10 items-end"
+                  >
+                    {config.currentLabel}
+                  </Label>
+                  <Input
+                    id={`${config.fieldIdPrefix}-current-action`}
+                    type="text"
+                    value={currentAction}
+                    onChange={(e) => setCurrentAction(e.target.value)}
+                    placeholder={config.currentPlaceholder}
+                  />
+                </div>
               </div>
 
               {error ? <p className="text-xs text-destructive">{error}</p> : null}
@@ -379,46 +431,47 @@ function ActionCalculator({ config }: { config: ActionCalculatorConfig }) {
   )
 }
 
-export function CovertActionCalculator() {
+export function StrikeActionCalculator() {
   return (
-    <ActionCalculator
+    <WeaponActionCalculator
       config={{
-        title: "Covert Action",
+        title: "Strike Action",
         description:
-          "Calculate covert action from spies, covert level, tech bonus, and race bonus.",
-        unitLabel: "Spies",
-        unitPlaceholder: "Spy count",
-        levelLabel: "Covert Level",
-        levelPlaceholder: "Covert level",
-        currentLabel: "Current Covert Action (Optional)",
-        currentPlaceholder: "Current covert action",
-        calculatedLabel: "Calculated Covert Action",
-        baseLabel: "Base Action",
-        fieldIdPrefix: "covert",
-        getBaseAction: (spies, covertLevel) => spies * 2 ** (covertLevel / 2),
+          "Calculate strike action from units, weapons, tech bonus, and race bonus.",
+        weaponStrength: 5760,
+        techBonusOptions: {
+          none: { label: "None", bonusNumerator: 0, bonusDenominator: 1 },
+          tier1: { label: "Tier 1", bonusNumerator: 55, bonusDenominator: 100 },
+          tier2: { label: "Tier 2", bonusNumerator: 1635, bonusDenominator: 1000 },
+        },
+        currentLabel: "Current Strike Action (Optional)",
+        currentPlaceholder: "Current strike action",
+        calculatedLabel: "Calculated Strike Action",
+        baseLabel: "Base Strike",
+        fieldIdPrefix: "strike",
       }}
     />
   )
 }
 
-export function AntiCovertActionCalculator() {
+export function DefenceActionCalculator() {
   return (
-    <ActionCalculator
+    <WeaponActionCalculator
       config={{
-        title: "Anti-Covert Action",
+        title: "Defence Action",
         description:
-          "Calculate anti-covert action from spykillers, AC level, tech bonus, and race bonus.",
-        unitLabel: "Spykillers",
-        unitPlaceholder: "Spykiller count",
-        levelLabel: "AC Level",
-        levelPlaceholder: "AC level",
-        currentLabel: "Current Anti-Covert Action (Optional)",
-        currentPlaceholder: "Current anti-covert action",
-        calculatedLabel: "Calculated Anti-Covert Action",
-        baseLabel: "Base AC",
-        fieldIdPrefix: "anti-covert",
-        getBaseAction: (spykillers, acLevel) =>
-          spykillers * 2 * 2 ** (acLevel / 2),
+          "Calculate defence action from units, weapons, tech bonus, and race bonus.",
+        weaponStrength: 5750,
+        techBonusOptions: {
+          none: { label: "None", bonusNumerator: 0, bonusDenominator: 1 },
+          tier1: { label: "Tier 1", bonusNumerator: 50, bonusDenominator: 100 },
+          tier2: { label: "Tier 2", bonusNumerator: 140, bonusDenominator: 100 },
+        },
+        currentLabel: "Current Defence Action (Optional)",
+        currentPlaceholder: "Current defence action",
+        calculatedLabel: "Calculated Defence Action",
+        baseLabel: "Base Defence",
+        fieldIdPrefix: "defence",
       }}
     />
   )

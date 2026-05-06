@@ -1,7 +1,14 @@
-import { CovertActionCalculator } from "@/components/calculators/covert-action-calculator"
+import {
+  AntiCovertActionCalculator,
+  CovertActionCalculator,
+} from "@/components/calculators/covert-action-calculator"
 import { PlanetUpgradeCalculator } from "@/components/calculators/planet-upgrade-calculator"
 import { SkillUpgradeCalculator } from "@/components/calculators/skill-upgrade-calculator"
 import { UnitProductionCalculator } from "@/components/calculators/unit-production-calculator"
+import {
+  DefenceActionCalculator,
+  StrikeActionCalculator,
+} from "@/components/calculators/weapon-action-calculator"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const CATEGORIES = [
@@ -12,10 +19,21 @@ const CATEGORIES = [
     calculators: [PlanetUpgradeCalculator, UnitProductionCalculator],
   },
   {
-    id: "skills-stats",
-    title: "Skills & Stats",
-    description: "Tools for planning skill progression and stat upgrades.",
-    calculators: [SkillUpgradeCalculator, CovertActionCalculator],
+    id: "skills",
+    title: "Skills",
+    description: "Tools for planning skill progression.",
+    calculators: [SkillUpgradeCalculator],
+  },
+  {
+    id: "stats",
+    title: "Stats",
+    description: "Tools for planning stat upgrades.",
+    calculators: [
+      CovertActionCalculator,
+      AntiCovertActionCalculator,
+      StrikeActionCalculator,
+      DefenceActionCalculator,
+    ],
   },
 ] as const
 
