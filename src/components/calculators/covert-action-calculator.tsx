@@ -29,6 +29,7 @@ interface CalculationResults {
   baseAction: number
   techBonusAction: number
   raceBonusAction: number
+  modifierBonusAction: number
 }
 
 const FINAL_MODIFIER = 2
@@ -50,7 +51,7 @@ interface ActionCalculatorConfig {
   levelPlaceholder: string
   currentLabel: string
   currentPlaceholder: string
-  calculatedLabel: string
+  totalLabel: string
   baseLabel: string
   fieldIdPrefix: string
   getBaseAction: (units: number, level: number) => number
@@ -89,6 +90,33 @@ const parseNonNegativeNumber = (value: string): number | null => {
   }
 
   return parsed
+}
+
+function ResultRow({
+  label,
+  value,
+  kind = "base",
+}: {
+  label: string
+  value: number
+  kind?: "base" | "positive"
+}) {
+  const displayValue =
+    kind === "positive" && value !== 0
+      ? `+${formatCompact(value)}`
+      : formatCompact(value)
+
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-border/60 py-2 last:border-b-0">
+      <div className="min-w-0 text-sm text-muted-foreground">{label}</div>
+      <div
+        className="text-right text-sm font-semibold"
+        title={formatNumber(value)}
+      >
+        {displayValue}
+      </div>
+    </div>
+  )
 }
 
 function ActionCalculator({
@@ -145,8 +173,10 @@ function ActionCalculator({
     const raceBonusAction = (baseAction + techBonusAction) * (raceBonusValue / 100)
     const totalAction = Math.floor(
       (baseAction + techBonusAction + raceBonusAction + parsedUnits) *
-        FINAL_MODIFIER,
+      FINAL_MODIFIER,
     )
+    const modifierBonusAction =
+      totalAction - baseAction - techBonusAction - raceBonusAction
 
     const difference =
       parsedCurrentAction === null ? null : totalAction - parsedCurrentAction
@@ -157,6 +187,7 @@ function ActionCalculator({
       baseAction,
       techBonusAction,
       raceBonusAction,
+      modifierBonusAction,
     })
   }
 
@@ -298,84 +329,69 @@ function ActionCalculator({
               </Button>
 
               {results ? (
-                <div className="flex flex-col gap-4 border-t pt-6">
-                  <div
-                    className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    onClick={() => void copyTotalAction()}
-                    onKeyDown={handleTotalKeyDown}
-                    role="button"
-                    tabIndex={0}
-                    title={`Copy ${results.totalAction}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="mb-1 text-sm text-muted-foreground">
-                          {config.calculatedLabel}
-                        </div>
-                        <div
-                          className="text-2xl font-bold"
-                          title={formatNumber(results.totalAction)}
-                        >
-                          {formatCompact(results.totalAction)}
-                          {results.difference !== null ? (
-                            <span
-                              className={`ml-2 text-lg ${results.difference >= 0 ? "text-green-500" : "text-destructive"}`}
-                              title={formatNumber(results.difference)}
-                            >
-                              ({results.difference >= 0 ? "+" : ""}
-                              {formatCompact(results.difference)})
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                        {copiedTotal ? (
-                          <>
-                            <Check className="size-4" />
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="size-4" />
-                            Copy raw
-                          </>
-                        )}
-                      </div>
-                    </div>
+                <div className="grid items-stretch gap-4 border-t pt-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                  <div className="rounded-lg border border-border bg-muted/20 p-4">
+                    <ResultRow label={config.baseLabel} value={results.baseAction} />
+                    <ResultRow
+                      label="Tech Bonus"
+                      value={results.techBonusAction}
+                      kind="positive"
+                    />
+                    <ResultRow
+                      label="Race Bonus"
+                      value={results.raceBonusAction}
+                      kind="positive"
+                    />
+                    <ResultRow
+                      label="Modifier Bonus"
+                      value={results.modifierBonusAction}
+                      kind="positive"
+                    />
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-lg bg-muted/50 p-4">
-                      <div className="mb-1 text-xs text-muted-foreground">
-                        {config.baseLabel}
-                      </div>
-                      <div
-                        className="text-lg font-semibold"
-                        title={formatNumber(results.baseAction)}
-                      >
-                        {formatCompact(results.baseAction)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-4">
-                      <div className="mb-1 text-xs text-muted-foreground">
-                        Tech Bonus Action
-                      </div>
-                      <div
-                        className="text-lg font-semibold"
-                        title={formatNumber(results.techBonusAction)}
-                      >
-                        {formatCompact(results.techBonusAction)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-4">
-                      <div className="mb-1 text-xs text-muted-foreground">
-                        Race Bonus Action
-                      </div>
-                      <div
-                        className="text-lg font-semibold"
-                        title={formatNumber(results.raceBonusAction)}
-                      >
-                        {formatCompact(results.raceBonusAction)}
+                  <div className="self-start">
+                    <div
+                      className="relative min-h-24 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      onClick={() => void copyTotalAction()}
+                      onKeyDown={handleTotalKeyDown}
+                      role="button"
+                      tabIndex={0}
+                      title={`Copy ${results.totalAction}`}
+                    >
+                      <div className="max-w-[calc(100%-6rem)]">
+                        <div className="min-w-0">
+                          <div className="mb-1 text-sm text-muted-foreground">
+                            {config.totalLabel}
+                          </div>
+                          <div
+                            className="text-2xl font-bold"
+                            title={formatNumber(results.totalAction)}
+                          >
+                            {formatCompact(results.totalAction)}
+                            {results.difference !== null ? (
+                              <span
+                                className={`ml-2 text-lg ${results.difference >= 0 ? "text-green-500" : "text-destructive"}`}
+                                title={formatNumber(results.difference)}
+                              >
+                                ({results.difference >= 0 ? "+" : ""}
+                                {formatCompact(results.difference)})
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="absolute right-4 top-4 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                          {copiedTotal ? (
+                            <>
+                              <Check className="size-4" />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="size-4" />
+                              Copy raw
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -403,8 +419,8 @@ export function CovertActionCalculator({ defaultOpen = false }: CalculatorProps)
         levelPlaceholder: "Covert level",
         currentLabel: "Current Covert Action (Optional)",
         currentPlaceholder: "Current covert action",
-        calculatedLabel: "Calculated Covert Action",
-        baseLabel: "Base Action",
+        totalLabel: "Total Covert",
+        baseLabel: "Base Covert",
         fieldIdPrefix: "covert",
         getBaseAction: (spies, covertLevel) => spies * 2 ** (covertLevel / 2),
       }}
@@ -426,7 +442,7 @@ export function AntiCovertActionCalculator({ defaultOpen = false }: CalculatorPr
         levelPlaceholder: "AC level",
         currentLabel: "Current Anti-Covert Action (Optional)",
         currentPlaceholder: "Current anti-covert action",
-        calculatedLabel: "Calculated Anti-Covert Action",
+        totalLabel: "Total Anti-Covert",
         baseLabel: "Base AC",
         fieldIdPrefix: "anti-covert",
         getBaseAction: (spykillers, acLevel) =>

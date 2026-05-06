@@ -527,7 +527,7 @@ export function IncomeCalculator({ defaultOpen = false }: CalculatorProps) {
               </Button>
 
               {results ? (
-                <div className="grid gap-4 border-t pt-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                <div className="grid items-stretch gap-4 border-t pt-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
                   <div className="rounded-lg border border-border bg-muted/20 p-4">
                     <ResultRow
                       label="Base Income"
@@ -561,9 +561,9 @@ export function IncomeCalculator({ defaultOpen = false }: CalculatorProps) {
                     />
                   </div>
 
-                  <div className="flex flex-col gap-3">
+                  <div className="flex h-full flex-col gap-3">
                     <div
-                      className="cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20"
+                      className="flex flex-1 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20"
                       onClick={() => {
                         void copyTotalPerTurn()
                       }}
@@ -571,7 +571,7 @@ export function IncomeCalculator({ defaultOpen = false }: CalculatorProps) {
                       role="button"
                       tabIndex={0}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex w-full items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="mb-1 text-sm text-muted-foreground">
                             Total / Turn
@@ -613,7 +613,7 @@ export function IncomeCalculator({ defaultOpen = false }: CalculatorProps) {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    <div className="grid flex-[2] gap-3 sm:grid-cols-2 lg:grid-cols-1">
                       <div className="rounded-lg bg-muted/30 p-4">
                         <div className="mb-1 text-sm text-muted-foreground">
                           Total / Day
