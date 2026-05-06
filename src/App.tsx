@@ -124,26 +124,29 @@ export function App() {
   const SelectedCalculatorComponent = selectedCalculator?.Component
 
   return (
-    <div className="dark relative min-h-screen overflow-hidden bg-background">
+    <div className="dark relative min-h-screen overflow-x-hidden bg-background lg:h-screen lg:overflow-hidden">
       <div
         aria-hidden="true"
         className="noise-bg pointer-events-none absolute inset-0"
       />
 
-      <div className="relative flex min-h-screen flex-col lg:flex-row">
-        <aside className="border-b border-sidebar-border bg-sidebar/90 px-4 py-5 text-sidebar-foreground backdrop-blur lg:min-h-screen lg:w-72 lg:shrink-0 lg:self-stretch lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
+      <div className="relative flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:flex-row">
+        <aside className="border-b border-sidebar-border bg-sidebar/90 px-4 py-5 text-sidebar-foreground backdrop-blur lg:h-screen lg:w-72 lg:shrink-0 lg:self-stretch lg:overflow-y-auto lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
           <header className="mb-6">
             <a
               href="/"
-              className="block text-xl font-bold tracking-tight transition-colors hover:text-sidebar-primary"
+              className="block text-2xl font-bold tracking-tight transition-colors hover:text-sidebar-primary"
               onClick={(event) => {
                 event.preventDefault()
                 setSelection({ type: "category", id: CATEGORIES[0].id })
               }}
             >
-              StarGateWars Utils
+              GateWars Utils
+              <span className="ml-2 inline-flex -translate-y-1 rounded-sm border border-amber-200/70 bg-amber-200/10 px-1.5 py-0.5 align-middle text-[0.625rem] font-bold uppercase leading-none tracking-normal text-amber-200 shadow-[1px_1px_0_color-mix(in_oklab,var(--color-amber-200)_35%,transparent)]">
+                WIP
+              </span>
             </a>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-base text-muted-foreground">
               Calculators and utilities
             </p>
           </header>
@@ -158,7 +161,7 @@ export function App() {
                       ? "secondary"
                       : "ghost"
                   }
-                  className="h-auto justify-start px-2 py-2 text-left"
+                  className="h-auto justify-start px-2 py-2 text-left text-base"
                   onClick={() =>
                     setSelection({ type: "category", id: category.id })
                   }
@@ -178,7 +181,7 @@ export function App() {
                           : "ghost"
                       }
                       size="sm"
-                      className="h-auto justify-start px-2 py-1.5 text-left text-xs text-muted-foreground hover:text-foreground"
+                      className="h-auto justify-start px-2 py-1.5 text-left text-sm text-muted-foreground hover:text-foreground"
                       onClick={() =>
                         setSelection({
                           type: "calculator",
@@ -195,7 +198,7 @@ export function App() {
           </nav>
         </aside>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-10 xl:px-16 2xl:px-24">
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:h-screen lg:min-h-0 lg:overflow-y-auto lg:px-10 lg:py-10 xl:px-16 2xl:px-24">
           {selectedCalculator ? (
             <section className="mx-auto w-full max-w-5xl 2xl:max-w-6xl">
               <div className="mb-6">
