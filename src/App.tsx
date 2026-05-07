@@ -31,15 +31,10 @@ interface CategoryDefinition {
 
 const CATEGORIES = [
   {
-    id: "stats",
-    title: "Stats",
-    description: "Tools for planning stat upgrades.",
+    id: "military-stats",
+    title: "Military Stats",
+    description: "Tools for planning military stat upgrades.",
     calculators: [
-      {
-        id: "income",
-        title: "Income",
-        Component: IncomeCalculator,
-      },
       {
         id: "strike-action",
         title: "Strike Action",
@@ -73,30 +68,37 @@ const CATEGORIES = [
     description: "Tools for planning production and resource growth.",
     calculators: [
       {
-        id: "planet-upgrade",
-        title: "Planet Upgrade",
-        Component: PlanetUpgradeCalculator,
+        id: "income",
+        title: "Income",
+        Component: IncomeCalculator,
       },
       {
         id: "unit-production",
         title: "Unit Production",
         Component: UnitProductionCalculator,
       },
+      {
+        id: "planet-upgrade",
+        title: "Planet Upgrades",
+        Component: PlanetUpgradeCalculator,
+      },
     ],
   },
   {
-    id: "skills",
-    title: "Skills",
-    description: "Tools for planning skill progression.",
+    id: "upgrades",
+    title: "Tech/Skill Upgrades",
+    description: "Tools for planning tech and skill progression (WIP).",
     calculators: [
       {
         id: "skill-upgrade",
-        title: "Skill Upgrade",
+        title: "Intel/Counter-Intel Skill",
         Component: SkillUpgradeCalculator,
       },
     ],
   },
 ] satisfies CategoryDefinition[]
+
+const calculatorSectionClassName = "mx-auto w-full max-w-5xl 2xl:max-w-6xl"
 
 type Selection =
   | { type: "category"; id: string }
@@ -182,7 +184,7 @@ export function App() {
                       type="button"
                       variant={
                         selection.type === "calculator" &&
-                        selection.id === calculator.id
+                          selection.id === calculator.id
                           ? "outline"
                           : "ghost"
                       }
@@ -206,7 +208,7 @@ export function App() {
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:h-screen lg:min-h-0 lg:overflow-y-auto lg:px-10 lg:py-10 xl:px-16 2xl:px-24">
           {selectedCalculator ? (
-            <section className="mx-auto w-full max-w-5xl 2xl:max-w-6xl">
+            <section className={calculatorSectionClassName}>
               <div className="mb-6">
                 <p className="text-sm text-muted-foreground">
                   {selectedCategory?.title}
@@ -224,7 +226,7 @@ export function App() {
               ) : null}
             </section>
           ) : selectedCategory ? (
-            <section className="mx-auto w-full max-w-6xl 2xl:max-w-7xl">
+            <section className={calculatorSectionClassName}>
               <div className="mb-8">
                 <h1 className="text-3xl font-bold tracking-tight">
                   {selectedCategory.title}

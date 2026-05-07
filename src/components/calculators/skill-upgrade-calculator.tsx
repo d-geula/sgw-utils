@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from "react"
-import { Calculator, ChevronDown, ChevronUp } from "lucide-react"
+import { type FormEvent, type KeyboardEvent, useState } from "react"
+import { Calculator, Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,17 +19,15 @@ import {
 interface UpgradeAtLevelResult {
   level: number
   nextLevel: number
-  cost: number | null
+  cost: number
 }
 
 interface TotalUpgradeResult {
   currentLevel: number
   targetLevel: number
-  upgradesNeeded: number
   totalCost: number
 }
 
-const MAX_SKILL_LEVEL = 40
 const BASE_UPGRADE_COST = 6_000
 
 const formatNumber = (num: number): string => {
@@ -85,6 +83,7 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
   const [totalResult, setTotalResult] = useState<TotalUpgradeResult | null>(null)
   const [upgradeError, setUpgradeError] = useState<string | null>(null)
   const [totalError, setTotalError] = useState<string | null>(null)
+  const [isUpgradeCostCopied, setIsUpgradeCostCopied] = useState(false)
   const [isTotalCostCopied, setIsTotalCostCopied] = useState(false)
 
   const calculate = () => {
@@ -97,17 +96,14 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
       const parsedUpgradeLevel = parseIntegerInput(upgradeLevel)
 
       if (parsedUpgradeLevel === null) {
-        setUpgradeError("Enter a whole number between 0 and 40.")
-      } else if (parsedUpgradeLevel < 0 || parsedUpgradeLevel > MAX_SKILL_LEVEL) {
-        setUpgradeError("Upgrade level must be between 0 and 40.")
+        setUpgradeError("Enter a whole number of 0 or higher.")
+      } else if (parsedUpgradeLevel < 0) {
+        setUpgradeError("Upgrade level must be 0 or higher.")
       } else {
         setUpgradeResult({
           level: parsedUpgradeLevel,
           nextLevel: parsedUpgradeLevel + 1,
-          cost:
-            parsedUpgradeLevel === MAX_SKILL_LEVEL
-              ? null
-              : getUpgradeCostAtLevel(parsedUpgradeLevel),
+          cost: getUpgradeCostAtLevel(parsedUpgradeLevel),
         })
       }
     }
@@ -123,20 +119,14 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
 
       if (parsedCurrentLevel === null || parsedTargetLevel === null) {
         setTotalError("Current and target levels must be whole numbers.")
-      } else if (
-        parsedCurrentLevel < 0 ||
-        parsedCurrentLevel > MAX_SKILL_LEVEL ||
-        parsedTargetLevel < 0 ||
-        parsedTargetLevel > MAX_SKILL_LEVEL
-      ) {
-        setTotalError("Current and target levels must be between 0 and 40.")
+      } else if (parsedCurrentLevel < 0 || parsedTargetLevel < 0) {
+        setTotalError("Current and target levels must be 0 or higher.")
       } else if (parsedTargetLevel < parsedCurrentLevel) {
         setTotalError("Target level must be greater than or equal to current level.")
       } else {
         setTotalResult({
           currentLevel: parsedCurrentLevel,
           targetLevel: parsedTargetLevel,
-          upgradesNeeded: parsedTargetLevel - parsedCurrentLevel,
           totalCost: getTotalUpgradeCost(parsedCurrentLevel, parsedTargetLevel),
         })
       }
@@ -148,18 +138,32 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
     calculate()
   }
 
-  const copyRawValue = async (value: number) => {
+  const copyRawValue = async (
+    value: number,
+    setCopied: (copied: boolean) => void,
+  ) => {
     if (typeof navigator === "undefined" || !navigator.clipboard) {
       return
     }
     try {
       await navigator.clipboard.writeText(value.toString())
-      setIsTotalCostCopied(true)
+      setCopied(true)
       window.setTimeout(() => {
-        setIsTotalCostCopied(false)
+        setCopied(false)
       }, 1500)
     } catch {
-      setIsTotalCostCopied(false)
+      setCopied(false)
+    }
+  }
+
+  const handleRawValueKeyDown = (
+    event: KeyboardEvent<HTMLDivElement>,
+    value: number,
+    setCopied: (copied: boolean) => void,
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      void copyRawValue(value, setCopied)
     }
   }
 
@@ -171,7 +175,7 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
             <div className="flex items-center gap-3">
               <Calculator className="size-5 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
-                <CardTitle>Skill Upgrade Calculator</CardTitle>
+                <CardTitle>Intel/Counter-Intel Skill Calculator</CardTitle>
                 <CardDescription>
                   Calculate single-upgrade cost and total cost to reach a target
                   skill level.
@@ -189,23 +193,6 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
         <CollapsibleContent>
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="upgrade-level">Upgrade Cost at Level X</Label>
-                <Input
-                  id="upgrade-level"
-                  type="text"
-                  value={upgradeLevel}
-                  onChange={(e) => setUpgradeLevel(e.target.value)}
-                  placeholder="Skill level (0-40)"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Uses level X to calculate the cost for upgrading to level X+1.
-                </p>
-                {upgradeError ? (
-                  <p className="text-xs text-destructive">{upgradeError}</p>
-                ) : null}
-              </div>
-
               <div className="grid items-end gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="space-y-2">
                   <Label htmlFor="current-level">Current Skill Level</Label>
@@ -214,7 +201,7 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
                     type="text"
                     value={currentLevel}
                     onChange={(e) => setCurrentLevel(e.target.value)}
-                    placeholder="Current level (0-40)"
+                    placeholder="Current level"
                   />
                 </div>
 
@@ -225,7 +212,7 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
                     type="text"
                     value={targetLevel}
                     onChange={(e) => setTargetLevel(e.target.value)}
-                    placeholder="Target level (0-40)"
+                    placeholder="Target level"
                   />
                 </div>
               </div>
@@ -234,22 +221,94 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
                 <p className="text-xs text-destructive">{totalError}</p>
               ) : null}
 
+              <div className="space-y-2">
+                <Label htmlFor="upgrade-level">Upgrade Cost at Level X (Optional)</Label>
+                <Input
+                  id="upgrade-level"
+                  type="text"
+                  value={upgradeLevel}
+                  onChange={(e) => setUpgradeLevel(e.target.value)}
+                  placeholder="Skill level"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Uses level X to calculate the cost for upgrading to level X+1.
+                </p>
+                {upgradeError ? (
+                  <p className="text-xs text-destructive">{upgradeError}</p>
+                ) : null}
+              </div>
+
               <Button type="submit" className="w-full">
                 Calculate
               </Button>
 
               {(upgradeResult || totalResult) && (
                 <div className="space-y-4 border-t pt-6">
+                  {totalResult ? (
+                    <div
+                      className="relative min-h-24 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      onClick={() => {
+                        void copyRawValue(totalResult.totalCost, setIsTotalCostCopied)
+                      }}
+                      onKeyDown={(event) =>
+                        handleRawValueKeyDown(
+                          event,
+                          totalResult.totalCost,
+                          setIsTotalCostCopied,
+                        )
+                      }
+                      role="button"
+                      tabIndex={0}
+                      title={`Copy ${totalResult.totalCost}`}
+                    >
+                      <div className="max-w-[calc(100%-6rem)]">
+                        <div className="mb-1 text-sm text-muted-foreground">
+                          Total Cost: Level {totalResult.currentLevel} to {totalResult.targetLevel}
+                        </div>
+                        <div
+                          className="text-2xl font-bold"
+                          title={formatNumber(totalResult.totalCost)}
+                        >
+                          {formatCompact(totalResult.totalCost)}
+                        </div>
+                      </div>
+                      <div className="absolute right-4 top-4 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                        {isTotalCostCopied ? (
+                          <>
+                            <Check className="size-4" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="size-4" />
+                            Copy raw
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
                   {upgradeResult ? (
-                    <div className="rounded-lg bg-muted/50 p-4">
+                    <div
+                      className="relative min-h-24 cursor-pointer rounded-lg bg-muted/50 p-4 transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      onClick={() => {
+                        void copyRawValue(upgradeResult.cost, setIsUpgradeCostCopied)
+                      }}
+                      onKeyDown={(event) =>
+                        handleRawValueKeyDown(
+                          event,
+                          upgradeResult.cost,
+                          setIsUpgradeCostCopied,
+                        )
+                      }
+                      role="button"
+                      tabIndex={0}
+                      title={`Copy ${upgradeResult.cost}`}
+                    >
                       <div className="mb-1 text-sm text-muted-foreground">
                         Upgrade Cost at Level {upgradeResult.level}
                       </div>
-                      {upgradeResult.cost === null ? (
-                        <div className="text-xl font-bold">
-                          Max level reached (no further upgrades)
-                        </div>
-                      ) : (
+                      <div className="max-w-[calc(100%-6rem)]">
                         <div
                           className="text-2xl font-bold"
                           title={formatNumber(upgradeResult.cost)}
@@ -259,39 +318,19 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
                             (to level {upgradeResult.nextLevel})
                           </span>
                         </div>
-                      )}
-                    </div>
-                  ) : null}
-
-                  {totalResult ? (
-                    <div
-                      className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 cursor-pointer"
-                      onClick={() => {
-                        void copyRawValue(totalResult.totalCost)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault()
-                          void copyRawValue(totalResult.totalCost)
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <div className="mb-1 text-sm text-muted-foreground">
-                        Total Cost: Level {totalResult.currentLevel} to {totalResult.targetLevel}
                       </div>
-                      <div
-                        className="text-2xl font-bold"
-                        title={`${totalResult.totalCost} (click to copy raw)`}
-                      >
-                        {formatCompact(totalResult.totalCost)}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {isTotalCostCopied ? "Copied raw value" : "Click to copy raw value"}
-                      </div>
-                      <div className="mt-1 text-sm text-muted-foreground">
-                        Upgrades needed: {formatNumber(totalResult.upgradesNeeded)}
+                      <div className="absolute right-4 top-4 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                        {isUpgradeCostCopied ? (
+                          <>
+                            <Check className="size-4" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="size-4" />
+                            Copy raw
+                          </>
+                        )}
                       </div>
                     </div>
                   ) : null}

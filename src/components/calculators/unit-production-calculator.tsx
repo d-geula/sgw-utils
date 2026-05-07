@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from "react"
-import { Calculator, ChevronDown, ChevronUp } from "lucide-react"
+import { type FormEvent, type KeyboardEvent, useState } from "react"
+import { Calculator, Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,16 +17,13 @@ import {
 } from "@/components/ui/collapsible"
 
 interface CalculationResults {
-  nextUpgradeCost: number
+  numberOfUpgradesToBuy: number
+  finalUnitProduction: number
   totalCost: number
-  projectedUnitProduction: number
-  productionIncrease: number
 }
 
 const UNIT_PRODUCTION_PER_UPGRADE = 3
 const COST_PER_PRODUCTION_POINT = 5_000
-const COST_PER_UPGRADE =
-  UNIT_PRODUCTION_PER_UPGRADE * COST_PER_PRODUCTION_POINT
 
 const formatNumber = (num: number): string => {
   return num.toLocaleString("en-US", { maximumFractionDigits: 2 })
@@ -54,8 +51,47 @@ const formatSmart = (num: number): string => {
   return formatNumber(num)
 }
 
-const getNextUpgradeCost = (unitProduction: number): number => {
-  return Math.max(0, unitProduction) * COST_PER_PRODUCTION_POINT
+const parseNonNegativeNumber = (value: string): number | null => {
+  const normalized = value.replace(/,/g, "").trim()
+  if (!normalized) {
+    return null
+  }
+
+  const parsed = Number(normalized)
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null
+  }
+
+  return parsed
+}
+
+const parseNonNegativeNumberOrZero = (value: string): number | null => {
+  const normalized = value.replace(/,/g, "").trim()
+  if (!normalized) {
+    return 0
+  }
+
+  return parseNonNegativeNumber(value)
+}
+
+function ResultRow({
+  label,
+  value,
+}: {
+  label: string
+  value: number
+}) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-border/60 py-2 last:border-b-0">
+      <div className="min-w-0 text-sm text-muted-foreground">{label}</div>
+      <div
+        className="text-right text-sm font-semibold"
+        title={formatNumber(value)}
+      >
+        {formatNumber(value)}
+      </div>
+    </div>
+  )
 }
 
 interface CalculatorProps {
@@ -65,31 +101,53 @@ interface CalculatorProps {
 export function UnitProductionCalculator({ defaultOpen = false }: CalculatorProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const [currentUnitProduction, setCurrentUnitProduction] = useState("")
-  const [upgradesToBuy, setUpgradesToBuy] = useState("")
+  const [desiredUnitProduction, setDesiredUnitProduction] = useState("")
   const [results, setResults] = useState<CalculationResults | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [isTotalCostCopied, setIsTotalCostCopied] = useState(false)
 
   const calculate = () => {
-    const current = parseFloat(currentUnitProduction.replace(/,/g, "")) || 0
-    const n = parseInt(upgradesToBuy.replace(/,/g, "")) || 0
+    setError(null)
 
-    if (n <= 0) {
+    const current = parseNonNegativeNumberOrZero(currentUnitProduction)
+    const desired = parseNonNegativeNumber(desiredUnitProduction)
+
+    if (current === null) {
+      setError("Enter a valid non-negative number for current production.")
       setResults(null)
       return
     }
 
-    const firstUpgradeCost = getNextUpgradeCost(current)
-    const costStep = COST_PER_UPGRADE
-    const totalCost = (n / 2) * (2 * firstUpgradeCost + (n - 1) * costStep)
-    const projectedUnitProduction = current + n * UNIT_PRODUCTION_PER_UPGRADE
-    const productionIncrease = n * UNIT_PRODUCTION_PER_UPGRADE
-    const nextUpgradeCost = firstUpgradeCost + n * costStep
+    if (desired === null) {
+      setError("Enter a valid desired production above current production.")
+      setResults(null)
+      return
+    }
+
+    if (desired <= current) {
+      setError("Desired production must be above current production.")
+      setResults(null)
+      return
+    }
+
+    const numberOfUpgradesToBuy = Math.max(
+      0,
+      Math.ceil((desired - current) / UNIT_PRODUCTION_PER_UPGRADE),
+    )
+    const totalCost =
+      COST_PER_PRODUCTION_POINT *
+      (numberOfUpgradesToBuy * (current + 2) +
+        (UNIT_PRODUCTION_PER_UPGRADE *
+          numberOfUpgradesToBuy *
+          (numberOfUpgradesToBuy - 1)) /
+          2)
+    const finalUnitProduction =
+      current + numberOfUpgradesToBuy * UNIT_PRODUCTION_PER_UPGRADE
 
     setResults({
-      nextUpgradeCost,
+      numberOfUpgradesToBuy,
+      finalUnitProduction,
       totalCost,
-      projectedUnitProduction,
-      productionIncrease,
     })
   }
 
@@ -98,18 +156,29 @@ export function UnitProductionCalculator({ defaultOpen = false }: CalculatorProp
     calculate()
   }
 
-  const copyRawValue = async (value: number) => {
+  const copyTotalCost = async () => {
+    if (!results) {
+      return
+    }
+
     if (typeof navigator === "undefined" || !navigator.clipboard) {
       return
     }
     try {
-      await navigator.clipboard.writeText(value.toString())
+      await navigator.clipboard.writeText(String(results.totalCost))
       setIsTotalCostCopied(true)
       window.setTimeout(() => {
         setIsTotalCostCopied(false)
       }, 1500)
     } catch {
       setIsTotalCostCopied(false)
+    }
+  }
+
+  const handleTotalKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      void copyTotalCost()
     }
   }
 
@@ -136,10 +205,10 @@ export function UnitProductionCalculator({ defaultOpen = false }: CalculatorProp
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <CardContent className="flex flex-col gap-6">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               <div className="grid items-end gap-y-4 sm:grid-cols-2 sm:gap-x-8">
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="current-unit-production">
                     Current Unit Production
                   </Label>
@@ -152,84 +221,78 @@ export function UnitProductionCalculator({ defaultOpen = false }: CalculatorProp
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="unit-upgrades">Upgrades to Buy</Label>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="desired-unit-production">
+                    Desired Unit Production
+                  </Label>
                   <Input
-                    id="unit-upgrades"
+                    id="desired-unit-production"
                     type="text"
-                    value={upgradesToBuy}
-                    onChange={(e) => setUpgradesToBuy(e.target.value)}
-                    placeholder="Number of upgrades"
+                    value={desiredUnitProduction}
+                    onChange={(e) => setDesiredUnitProduction(e.target.value)}
+                    placeholder="Desired unit production"
                   />
                 </div>
               </div>
+
+              {error ? <p className="text-xs text-destructive">{error}</p> : null}
 
               <Button type="submit" className="w-full">
                 Calculate
               </Button>
 
-              {results && (
-                <div className="space-y-4 border-t pt-6">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div
-                      className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 cursor-pointer"
-                      onClick={() => {
-                        void copyRawValue(results.totalCost)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault()
-                          void copyRawValue(results.totalCost)
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <div className="mb-1 text-sm text-muted-foreground">
-                        Total Cost
-                      </div>
-                      <div
-                        className="text-2xl font-bold"
-                        title={`${results.totalCost} (click to copy raw)`}
-                      >
-                        {formatSmart(results.totalCost)}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {isTotalCostCopied ? "Copied raw value" : "Click to copy raw value"}
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-4">
-                      <div className="mb-1 text-sm text-muted-foreground">
-                        Next Upgrade Cost
-                      </div>
-                      <div
-                        className="text-xl font-bold"
-                        title={formatNumber(results.nextUpgradeCost)}
-                      >
-                        {formatSmart(results.nextUpgradeCost)}
-                      </div>
-                    </div>
+              {results ? (
+                <div className="grid items-stretch gap-4 border-t pt-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                  <div className="rounded-lg border border-border bg-muted/20 p-4">
+                    <ResultRow
+                      label="Number of Upgrades to Buy"
+                      value={results.numberOfUpgradesToBuy}
+                    />
+                    <ResultRow
+                      label="Final Unit Production"
+                      value={results.finalUnitProduction}
+                    />
                   </div>
 
-                  <div className="rounded-lg bg-chart-3/10 p-4 ring-1 ring-chart-3/20">
-                    <div className="mb-1 text-sm text-muted-foreground">
-                      Projected Unit Production
-                    </div>
+                  <div className="flex">
                     <div
-                      className="text-2xl font-bold"
-                      title={formatNumber(results.projectedUnitProduction)}
+                      className="relative min-h-24 flex-1 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      onClick={() => void copyTotalCost()}
+                      onKeyDown={handleTotalKeyDown}
+                      role="button"
+                      tabIndex={0}
+                      title={`Copy ${results.totalCost}`}
                     >
-                      {formatSmart(results.projectedUnitProduction)}
-                      <span
-                        className="ml-2 text-lg text-green-500"
-                        title={formatNumber(results.productionIncrease)}
-                      >
-                        (+{formatSmart(results.productionIncrease)})
-                      </span>
+                      <div className="max-w-[calc(100%-6rem)]">
+                        <div className="min-w-0">
+                          <div className="mb-1 text-sm text-muted-foreground">
+                            Total Cost
+                          </div>
+                          <div
+                            className="text-2xl font-bold"
+                            title={formatNumber(results.totalCost)}
+                          >
+                            {formatSmart(results.totalCost)}
+                          </div>
+                        </div>
+                        <div className="absolute right-4 top-4 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                          {isTotalCostCopied ? (
+                            <>
+                              <Check className="size-4" />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="size-4" />
+                              Copy raw
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
             </form>
           </CardContent>
         </CollapsibleContent>
