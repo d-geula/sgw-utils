@@ -41,11 +41,6 @@ const CATEGORIES = [
         Component: IncomeCalculator,
       },
       {
-        id: "mothership",
-        title: "Mothership",
-        Component: MothershipCalculator,
-      },
-      {
         id: "strike-action",
         title: "Strike Action",
         Component: StrikeActionCalculator,
@@ -64,6 +59,11 @@ const CATEGORIES = [
         id: "anti-covert-action",
         title: "Anti-Covert Action",
         Component: AntiCovertActionCalculator,
+      },
+      {
+        id: "mothership",
+        title: "Mothership",
+        Component: MothershipCalculator,
       },
     ],
   },
