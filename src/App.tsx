@@ -6,6 +6,7 @@ import {
 import { PlanetUpgradeCalculator } from "@/components/calculators/planet-upgrade-calculator"
 import { SkillUpgradeCalculator } from "@/components/calculators/skill-upgrade-calculator"
 import { IncomeCalculator } from "@/components/calculators/income-calculator"
+import { MothershipCalculator } from "@/components/calculators/mothership-calculator"
 import { UnitProductionCalculator } from "@/components/calculators/unit-production-calculator"
 import {
   DefenceActionCalculator,
@@ -38,6 +39,11 @@ const CATEGORIES = [
         id: "income",
         title: "Income",
         Component: IncomeCalculator,
+      },
+      {
+        id: "mothership",
+        title: "Mothership",
+        Component: MothershipCalculator,
       },
       {
         id: "strike-action",
@@ -147,7 +153,7 @@ export function App() {
               </span>
             </a>
             <p className="mt-1 text-base text-muted-foreground">
-              Calculators and utilities
+              Handy Collection of Calcs
             </p>
           </header>
 
