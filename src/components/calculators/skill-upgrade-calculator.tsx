@@ -222,7 +222,7 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
               ) : null}
 
               <div className="space-y-2">
-                <Label htmlFor="upgrade-level">Upgrade Cost at Level X (Optional)</Label>
+                <Label htmlFor="upgrade-level">Upgrade Cost at Level X</Label>
                 <Input
                   id="upgrade-level"
                   type="text"
