@@ -1,5 +1,5 @@
 import { type FormEvent, type KeyboardEvent, useState } from "react"
-import { Calculator, Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -38,6 +38,7 @@ interface CalculationResults {
 
 interface CalculatorProps {
   defaultOpen?: boolean
+  displayMode?: "accordion" | "standalone"
 }
 
 const WEAPON_STRENGTH = 4_975_000
@@ -198,8 +199,12 @@ function ResultSection({
   )
 }
 
-export function MothershipCalculator({ defaultOpen = false }: CalculatorProps) {
+export function MothershipCalculator({
+  defaultOpen = false,
+  displayMode = "accordion",
+}: CalculatorProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const isStandalone = displayMode === "standalone"
   const [rawWeaponCapacity, setRawWeaponCapacity] = useState("")
   const [desiredWeaponCapacity, setDesiredWeaponCapacity] = useState("")
   const [rawShieldCapacity, setRawShieldCapacity] = useState("")
@@ -320,31 +325,17 @@ export function MothershipCalculator({ defaultOpen = false }: CalculatorProps) {
     }
   }
 
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card>
-        <CollapsibleTrigger className="w-full text-left">
-          <CardHeader className="cursor-pointer select-none">
-            <div className="flex items-center gap-3">
-              <Calculator className="size-5 shrink-0 text-primary" />
-              <div className="min-w-0 flex-1">
-                <CardTitle>Mothership Calculator</CardTitle>
-                <CardDescription>
-                  Calculate mothership power and capacity upgrade costs.
-                </CardDescription>
-              </div>
-              {isOpen ? (
-                <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
-              )}
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
+  const description = "Calculate mothership power and capacity upgrade costs."
+  const disclaimer = ""
+  const disclaimerContent = disclaimer ? (
+    <p className="mt-1 text-xs text-amber-100/80">
+      <span className="font-semibold text-amber-100">Disclaimer:</span>{" "}
+      {disclaimer}
+    </p>
+  ) : null
 
-        <CollapsibleContent>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+  const formContent = (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               <div className="grid items-start gap-4 lg:grid-cols-3">
                 <div className="rounded-md border border-border bg-muted/20 p-4">
                   <div className="mb-3 text-sm font-semibold">Weapons</div>
@@ -552,6 +543,43 @@ export function MothershipCalculator({ defaultOpen = false }: CalculatorProps) {
                 </div>
               ) : null}
             </form>
+  )
+
+  if (isStandalone) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="text-sm text-muted-foreground">{description}</p>
+          {disclaimerContent}
+        </div>
+        {formContent}
+      </div>
+    )
+  }
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card>
+        <CollapsibleTrigger className="w-full text-left">
+          <CardHeader className="cursor-pointer select-none">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <CardTitle>Mothership Calculator</CardTitle>
+                <CardDescription>{description}</CardDescription>
+                {isOpen ? disclaimerContent : null}
+              </div>
+              {isOpen ? (
+                <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <CardContent>
+            {formContent}
           </CardContent>
         </CollapsibleContent>
       </Card>

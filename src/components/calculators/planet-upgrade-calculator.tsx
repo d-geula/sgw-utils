@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react"
-import { Calculator, ChevronDown, ChevronUp } from "lucide-react"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -114,10 +114,15 @@ const roundDownToMillionCents = (num: number): number => {
 
 interface CalculatorProps {
   defaultOpen?: boolean
+  displayMode?: "accordion" | "standalone"
 }
 
-export function PlanetUpgradeCalculator({ defaultOpen = false }: CalculatorProps) {
+export function PlanetUpgradeCalculator({
+  defaultOpen = false,
+  displayMode = "accordion",
+}: CalculatorProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const isStandalone = displayMode === "standalone"
   const [planetType, setPlanetType] = useState<PlanetType>("income")
   const [currentValue, setCurrentValue] = useState("")
   const [upgradesToBuy, setUpgradesToBuy] = useState("")
@@ -197,31 +202,18 @@ export function PlanetUpgradeCalculator({ defaultOpen = false }: CalculatorProps
     }
   }
 
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card>
-        <CollapsibleTrigger className="w-full text-left">
-          <CardHeader className="cursor-pointer select-none">
-            <div className="flex items-center gap-3">
-              <Calculator className="size-5 text-primary shrink-0" />
-              <div className="flex-1 min-w-0">
-                <CardTitle>Planet Upgrade Calculator</CardTitle>
-                <CardDescription>
-                  Calculate upgrade costs and projected values for different planet types.
-                </CardDescription>
-              </div>
-              {isOpen ? (
-                <ChevronUp className="size-5 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronDown className="size-5 text-muted-foreground shrink-0" />
-              )}
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
+  const description =
+    "Calculate upgrade costs and projected values for different planet types."
+  const disclaimer = ""
+  const disclaimerContent = disclaimer ? (
+    <p className="mt-1 text-xs text-amber-100/80">
+      <span className="font-semibold text-amber-100">Disclaimer:</span>{" "}
+      {disclaimer}
+    </p>
+  ) : null
 
-        <CollapsibleContent>
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+  const formContent = (
+    <form onSubmit={handleSubmit} className="space-y-6">
               {/* Planet Type Selector */}
               <div className="space-y-2">
                 <Label htmlFor="planet-type">Planet Type</Label>
@@ -355,6 +347,43 @@ export function PlanetUpgradeCalculator({ defaultOpen = false }: CalculatorProps
                 </div>
               )}
             </form>
+  )
+
+  if (isStandalone) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="text-sm text-muted-foreground">{description}</p>
+          {disclaimerContent}
+        </div>
+        {formContent}
+      </div>
+    )
+  }
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card>
+        <CollapsibleTrigger className="w-full text-left">
+          <CardHeader className="cursor-pointer select-none">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <CardTitle>Planet Upgrade Calculator</CardTitle>
+                <CardDescription>{description}</CardDescription>
+                {isOpen ? disclaimerContent : null}
+              </div>
+              {isOpen ? (
+                <ChevronUp className="size-5 text-muted-foreground shrink-0" />
+              ) : (
+                <ChevronDown className="size-5 text-muted-foreground shrink-0" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
+            {formContent}
           </CardContent>
         </CollapsibleContent>
       </Card>

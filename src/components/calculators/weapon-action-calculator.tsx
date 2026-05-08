@@ -1,5 +1,5 @@
 import { type FormEvent, type KeyboardEvent, useState } from "react"
-import { Calculator, Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 interface CalculationResults {
   totalAction: number
@@ -39,9 +40,12 @@ interface TechBonusOption {
 
 type TechBonusKey = "none" | "tier1" | "tier2"
 
+const NON_ASCENDED_WEAPON_STRENGTH = 2560
+
 interface WeaponActionCalculatorConfig {
   title: string
   description: string
+  disclaimer?: string
   weaponStrength: number
   techBonusOptions: Record<TechBonusKey, TechBonusOption>
   currentLabel: string
@@ -53,6 +57,7 @@ interface WeaponActionCalculatorConfig {
 
 interface CalculatorProps {
   defaultOpen?: boolean
+  displayMode?: "accordion" | "standalone"
 }
 
 const formatNumber = (num: number): string => {
@@ -137,17 +142,66 @@ function ResultRow({
   )
 }
 
+function CheckboxToggle({
+  id,
+  label,
+  checked,
+  onChange,
+}: {
+  id: string
+  label: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <Label
+      htmlFor={id}
+      className={cn(
+        "dark:bg-input/30 flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-input bg-transparent px-2.5 text-sm shadow-xs transition-[color,box-shadow] hover:text-foreground",
+        checked
+          ? "text-foreground"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex size-4 shrink-0 items-center justify-center rounded border [&>svg]:size-3.5",
+          checked
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-input bg-background",
+        )}
+      >
+        {checked ? <Check /> : null}
+      </span>
+      <span className="font-medium leading-none">{label}</span>
+    </Label>
+  )
+}
+
 function WeaponActionCalculator({
   config,
   defaultOpen = false,
+  displayMode = "accordion",
 }: {
   config: WeaponActionCalculatorConfig
   defaultOpen?: boolean
+  displayMode?: "accordion" | "standalone"
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const isStandalone = displayMode === "standalone"
+  const isExpanded = isStandalone || isOpen
   const [normalUnits, setNormalUnits] = useState("")
   const [superUnits, setSuperUnits] = useState("")
   const [weapons, setWeapons] = useState("")
+  const [isAscended, setIsAscended] = useState(true)
   const [techBonus, setTechBonus] = useState<TechBonusKey>("none")
   const [raceBonusPercent, setRaceBonusPercent] = useState("")
   const [currentAction, setCurrentAction] = useState("")
@@ -188,11 +242,14 @@ function WeaponActionCalculator({
       return
     }
 
+    const weaponStrength = isAscended
+      ? config.weaponStrength
+      : NON_ASCENDED_WEAPON_STRENGTH
     const baseAction = getBaseAction(
       parsedNormalUnits,
       parsedSuperUnits,
       parsedWeapons,
-      config.weaponStrength,
+      weaponStrength,
     )
     const techBonusOption = config.techBonusOptions[techBonus]
     const techBonusAction =
@@ -235,16 +292,224 @@ function WeaponActionCalculator({
   }
 
 
+  const disclaimer = config.disclaimer ? (
+    <p className="mt-1 text-xs text-amber-100/80">
+      <span className="font-semibold text-amber-100">
+        Note:
+      </span>{" "}
+      {config.disclaimer}
+    </p>
+  ) : null
+
+  const formContent = (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={`${config.fieldIdPrefix}-normal-units`}>
+            Normal/Merc Units
+          </Label>
+          <Input
+            id={`${config.fieldIdPrefix}-normal-units`}
+            type="text"
+            value={normalUnits}
+            onChange={(e) => setNormalUnits(e.target.value)}
+            placeholder="Normal/merc unit count"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={`${config.fieldIdPrefix}-super-units`}>
+            Super Units
+          </Label>
+          <Input
+            id={`${config.fieldIdPrefix}-super-units`}
+            type="text"
+            value={superUnits}
+            onChange={(e) => setSuperUnits(e.target.value)}
+            placeholder="Super unit count"
+          />
+        </div>
+      </div>
+
+      <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={`${config.fieldIdPrefix}-weapons`}>
+            Weapons
+          </Label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              id={`${config.fieldIdPrefix}-weapons`}
+              type="text"
+              value={weapons}
+              onChange={(e) => setWeapons(e.target.value)}
+              placeholder="Weapon count"
+              className="min-w-0 flex-1"
+            />
+            <CheckboxToggle
+              id={`${config.fieldIdPrefix}-ascended`}
+              label="Ascended"
+              checked={isAscended}
+              onChange={setIsAscended}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={`${config.fieldIdPrefix}-tech-bonus`}>
+            Tech Bonus
+          </Label>
+          <Select
+            value={techBonus}
+            onValueChange={(value) => setTechBonus(value as TechBonusKey)}
+          >
+            <SelectTrigger
+              id={`${config.fieldIdPrefix}-tech-bonus`}
+              className="w-full"
+            >
+              <SelectValue placeholder="Select tech bonus">
+                {config.techBonusOptions[techBonus].label}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent
+              side="bottom"
+              alignItemWithTrigger={false}
+              collisionAvoidance={{ side: "none" }}
+            >
+              {Object.entries(config.techBonusOptions).map(
+                ([key, option]) => (
+                  <SelectItem key={key} value={key}>
+                    {option.label}
+                  </SelectItem>
+                ),
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={`${config.fieldIdPrefix}-race-bonus`}>
+            Race Bonus (%)
+          </Label>
+          <Input
+            id={`${config.fieldIdPrefix}-race-bonus`}
+            type="text"
+            value={raceBonusPercent}
+            onChange={(e) => setRaceBonusPercent(e.target.value)}
+            placeholder="e.g. 25"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={`${config.fieldIdPrefix}-current-action`}>
+            {config.currentLabel}
+          </Label>
+          <Input
+            id={`${config.fieldIdPrefix}-current-action`}
+            type="text"
+            value={currentAction}
+            onChange={(e) => setCurrentAction(e.target.value)}
+            placeholder={config.currentPlaceholder}
+          />
+        </div>
+      </div>
+
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+
+      <Button type="submit" className="w-full">
+        Calculate
+      </Button>
+
+      {results ? (
+        <div className="grid items-stretch gap-4 border-t pt-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="rounded-lg border border-border bg-muted/20 p-4">
+            <ResultRow label={config.baseLabel} value={results.baseAction} />
+            <ResultRow
+              label="Tech Bonus"
+              value={results.techBonusAction}
+              kind="positive"
+            />
+            <ResultRow
+              label="Race Bonus"
+              value={results.raceBonusAction}
+              kind="positive"
+            />
+          </div>
+
+          <div className="self-start">
+            <div
+              className="relative min-h-24 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              onClick={() => void copyTotalAction()}
+              onKeyDown={handleTotalKeyDown}
+              role="button"
+              tabIndex={0}
+              title={`Copy ${results.totalAction}`}
+            >
+              <div className="max-w-[calc(100%-6rem)]">
+                <div className="min-w-0">
+                  <div className="mb-1 text-sm text-muted-foreground">
+                    {config.totalLabel}
+                  </div>
+                  <div
+                    className="text-2xl font-bold"
+                    title={formatNumber(results.totalAction)}
+                  >
+                    {formatCompact(results.totalAction)}
+                    {results.difference !== null ? (
+                      <span
+                        className={`ml-2 text-lg ${results.difference >= 0 ? "text-green-500" : "text-destructive"}`}
+                        title={formatNumber(results.difference)}
+                      >
+                        ({results.difference >= 0 ? "+" : ""}
+                        {formatCompact(results.difference)})
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="absolute right-4 top-4 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                  {copiedTotal ? (
+                    <>
+                      <Check className="size-4" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-4" />
+                      Copy raw
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </form>
+  )
+
+  if (isStandalone) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="text-sm text-muted-foreground">{config.description}</p>
+          {disclaimer}
+        </div>
+        {formContent}
+      </div>
+    )
+  }
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
         <CollapsibleTrigger className="w-full text-left">
           <CardHeader className="cursor-pointer select-none">
             <div className="flex items-center gap-3">
-              <Calculator className="size-5 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
                 <CardTitle>{config.title}</CardTitle>
                 <CardDescription>{config.description}</CardDescription>
+                {isExpanded ? disclaimer : null}
               </div>
               {isOpen ? (
                 <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
@@ -257,181 +522,7 @@ function WeaponActionCalculator({
 
         <CollapsibleContent>
           <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`${config.fieldIdPrefix}-normal-units`}>
-                    Normal/Merc Units
-                  </Label>
-                  <Input
-                    id={`${config.fieldIdPrefix}-normal-units`}
-                    type="text"
-                    value={normalUnits}
-                    onChange={(e) => setNormalUnits(e.target.value)}
-                    placeholder="Normal/merc unit count"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`${config.fieldIdPrefix}-super-units`}>
-                    Super Units
-                  </Label>
-                  <Input
-                    id={`${config.fieldIdPrefix}-super-units`}
-                    type="text"
-                    value={superUnits}
-                    onChange={(e) => setSuperUnits(e.target.value)}
-                    placeholder="Super unit count"
-                  />
-                </div>
-              </div>
-
-              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`${config.fieldIdPrefix}-weapons`}>
-                    Weapons
-                  </Label>
-                  <Input
-                    id={`${config.fieldIdPrefix}-weapons`}
-                    type="text"
-                    value={weapons}
-                    onChange={(e) => setWeapons(e.target.value)}
-                    placeholder="Weapon count (best)"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`${config.fieldIdPrefix}-tech-bonus`}>
-                    Tech Bonus
-                  </Label>
-                  <Select
-                    value={techBonus}
-                    onValueChange={(value) => setTechBonus(value as TechBonusKey)}
-                  >
-                    <SelectTrigger
-                      id={`${config.fieldIdPrefix}-tech-bonus`}
-                      className="w-full"
-                    >
-                      <SelectValue placeholder="Select tech bonus">
-                        {config.techBonusOptions[techBonus].label}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent
-                      side="bottom"
-                      alignItemWithTrigger={false}
-                      collisionAvoidance={{ side: "none" }}
-                    >
-                      {Object.entries(config.techBonusOptions).map(
-                        ([key, option]) => (
-                          <SelectItem key={key} value={key}>
-                            {option.label}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`${config.fieldIdPrefix}-race-bonus`}>
-                    Race Bonus (%)
-                  </Label>
-                  <Input
-                    id={`${config.fieldIdPrefix}-race-bonus`}
-                    type="text"
-                    value={raceBonusPercent}
-                    onChange={(e) => setRaceBonusPercent(e.target.value)}
-                    placeholder="e.g. 25"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`${config.fieldIdPrefix}-current-action`}>
-                    {config.currentLabel}
-                  </Label>
-                  <Input
-                    id={`${config.fieldIdPrefix}-current-action`}
-                    type="text"
-                    value={currentAction}
-                    onChange={(e) => setCurrentAction(e.target.value)}
-                    placeholder={config.currentPlaceholder}
-                  />
-                </div>
-              </div>
-
-              {error ? <p className="text-xs text-destructive">{error}</p> : null}
-
-              <Button type="submit" className="w-full">
-                Calculate
-              </Button>
-
-              {results ? (
-                <div className="grid items-stretch gap-4 border-t pt-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-                  <div className="rounded-lg border border-border bg-muted/20 p-4">
-                    <ResultRow label={config.baseLabel} value={results.baseAction} />
-                    <ResultRow
-                      label="Tech Bonus"
-                      value={results.techBonusAction}
-                      kind="positive"
-                    />
-                    <ResultRow
-                      label="Race Bonus"
-                      value={results.raceBonusAction}
-                      kind="positive"
-                    />
-                  </div>
-
-                  <div className="self-start">
-                    <div
-                      className="relative min-h-24 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                      onClick={() => void copyTotalAction()}
-                      onKeyDown={handleTotalKeyDown}
-                      role="button"
-                      tabIndex={0}
-                      title={`Copy ${results.totalAction}`}
-                    >
-                      <div className="max-w-[calc(100%-6rem)]">
-                        <div className="min-w-0">
-                          <div className="mb-1 text-sm text-muted-foreground">
-                            {config.totalLabel}
-                          </div>
-                          <div
-                            className="text-2xl font-bold"
-                            title={formatNumber(results.totalAction)}
-                          >
-                            {formatCompact(results.totalAction)}
-                            {results.difference !== null ? (
-                              <span
-                                className={`ml-2 text-lg ${results.difference >= 0 ? "text-green-500" : "text-destructive"}`}
-                                title={formatNumber(results.difference)}
-                              >
-                                ({results.difference >= 0 ? "+" : ""}
-                                {formatCompact(results.difference)})
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div className="absolute right-4 top-4 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                          {copiedTotal ? (
-                            <>
-                              <Check className="size-4" />
-                              Copied
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="size-4" />
-                              Copy raw
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </form>
+            {formContent}
           </CardContent>
         </CollapsibleContent>
       </Card>
@@ -439,14 +530,20 @@ function WeaponActionCalculator({
   )
 }
 
-export function StrikeActionCalculator({ defaultOpen = false }: CalculatorProps) {
+export function StrikeActionCalculator({
+  defaultOpen = false,
+  displayMode,
+}: CalculatorProps) {
   return (
     <WeaponActionCalculator
       defaultOpen={defaultOpen}
+      displayMode={displayMode}
       config={{
         title: "Strike Action",
         description:
           "Calculate strike action from units, weapons, tech bonus, and race bonus.",
+        disclaimer:
+          "Only best (normal) weapons for now.",
         weaponStrength: 5760,
         techBonusOptions: {
           none: { label: "None", bonusNumerator: 0, bonusDenominator: 1 },
@@ -463,14 +560,20 @@ export function StrikeActionCalculator({ defaultOpen = false }: CalculatorProps)
   )
 }
 
-export function DefenceActionCalculator({ defaultOpen = false }: CalculatorProps) {
+export function DefenceActionCalculator({
+  defaultOpen = false,
+  displayMode,
+}: CalculatorProps) {
   return (
     <WeaponActionCalculator
       defaultOpen={defaultOpen}
+      displayMode={displayMode}
       config={{
         title: "Defence Action",
         description:
           "Calculate defence action from units, weapons, tech bonus, and race bonus.",
+        disclaimer:
+          "Only best (normal) weapons for now.",
         weaponStrength: 5750,
         techBonusOptions: {
           none: { label: "None", bonusNumerator: 0, bonusDenominator: 1 },

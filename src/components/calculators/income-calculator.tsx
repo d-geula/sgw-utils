@@ -1,6 +1,5 @@
 import { type FormEvent, type KeyboardEvent, useState } from "react"
 import {
-  Calculator,
   Check,
   ChevronDown,
   ChevronUp,
@@ -59,6 +58,7 @@ interface AlertOption {
 
 interface CalculatorProps {
   defaultOpen?: boolean
+  displayMode?: "accordion" | "standalone"
 }
 
 const UNTRAINED_INCOME = 20
@@ -140,10 +140,10 @@ function CheckboxToggle({
     <Label
       htmlFor={id}
       className={cn(
-        "flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors",
+        "dark:bg-input/30 flex cursor-pointer items-center gap-3 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] hover:text-foreground",
         checked
-          ? "border-primary bg-primary/10 text-foreground"
-          : "border-border bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+          ? "text-foreground"
+          : "text-muted-foreground hover:text-foreground",
       )}
     >
       <input
@@ -213,8 +213,12 @@ function ResultRow({
   )
 }
 
-export function IncomeCalculator({ defaultOpen = false }: CalculatorProps) {
+export function IncomeCalculator({
+  defaultOpen = false,
+  displayMode = "accordion",
+}: CalculatorProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const isStandalone = displayMode === "standalone"
   const [untrainedUnits, setUntrainedUnits] = useState("")
   const [miners, setMiners] = useState("")
   const [raceBonusPercent, setRaceBonusPercent] = useState("")
@@ -338,31 +342,18 @@ export function IncomeCalculator({ defaultOpen = false }: CalculatorProps) {
     }
   }
 
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card>
-        <CollapsibleTrigger className="w-full text-left">
-          <CardHeader className="cursor-pointer select-none">
-            <div className="flex items-center gap-3">
-              <Calculator className="size-5 shrink-0 text-primary" />
-              <div className="min-w-0 flex-1">
-                <CardTitle>Income Calculator</CardTitle>
-                <CardDescription>
-                  Calculate income per turn, day, and PPT from units and bonuses.
-                </CardDescription>
-              </div>
-              {isOpen ? (
-                <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
-              )}
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
+  const description =
+    "Calculate income per turn, day, and PPT from units and bonuses."
+  const disclaimer = ""
+  const disclaimerContent = disclaimer ? (
+    <p className="mt-1 text-xs text-amber-100/80">
+      <span className="font-semibold text-amber-100">Disclaimer:</span>{" "}
+      {disclaimer}
+    </p>
+  ) : null
 
-        <CollapsibleContent>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+  const formContent = (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="income-untrained-units">
@@ -642,6 +633,43 @@ export function IncomeCalculator({ defaultOpen = false }: CalculatorProps) {
                 </div>
               ) : null}
             </form>
+  )
+
+  if (isStandalone) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="text-sm text-muted-foreground">{description}</p>
+          {disclaimerContent}
+        </div>
+        {formContent}
+      </div>
+    )
+  }
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card>
+        <CollapsibleTrigger className="w-full text-left">
+          <CardHeader className="cursor-pointer select-none">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <CardTitle>Income Calculator</CardTitle>
+                <CardDescription>{description}</CardDescription>
+                {isOpen ? disclaimerContent : null}
+              </div>
+              {isOpen ? (
+                <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <CardContent>
+            {formContent}
           </CardContent>
         </CollapsibleContent>
       </Card>

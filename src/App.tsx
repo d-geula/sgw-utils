@@ -14,7 +14,12 @@ import {
 } from "@/components/calculators/weapon-action-calculator"
 import { Button } from "@/components/ui/button"
 
-type CalculatorComponent = ComponentType<{ defaultOpen?: boolean }>
+type CalculatorDisplayMode = "accordion" | "standalone"
+
+type CalculatorComponent = ComponentType<{
+  defaultOpen?: boolean
+  displayMode?: CalculatorDisplayMode
+}>
 
 interface CalculatorDefinition {
   id: string
@@ -222,6 +227,7 @@ export function App() {
                 <SelectedCalculatorComponent
                   key={selectedCalculator.id}
                   defaultOpen
+                  displayMode="standalone"
                 />
               ) : null}
             </section>

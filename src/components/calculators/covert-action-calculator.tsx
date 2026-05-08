@@ -1,5 +1,5 @@
 import { type FormEvent, type KeyboardEvent, useState } from "react"
-import { Calculator, Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -45,6 +45,7 @@ type TechBonusKey = keyof typeof TECH_BONUS_OPTIONS
 interface ActionCalculatorConfig {
   title: string
   description: string
+  disclaimer?: string
   unitLabel: string
   unitPlaceholder: string
   levelLabel: string
@@ -59,6 +60,7 @@ interface ActionCalculatorConfig {
 
 interface CalculatorProps {
   defaultOpen?: boolean
+  displayMode?: "accordion" | "standalone"
 }
 
 const formatNumber = (num: number): string => {
@@ -122,11 +124,14 @@ function ResultRow({
 function ActionCalculator({
   config,
   defaultOpen = false,
+  displayMode = "accordion",
 }: {
   config: ActionCalculatorConfig
   defaultOpen?: boolean
+  displayMode?: "accordion" | "standalone"
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const isStandalone = displayMode === "standalone"
   const [units, setUnits] = useState("")
   const [level, setLevel] = useState("")
   const [techBonus, setTechBonus] = useState<TechBonusKey>("none")
@@ -213,29 +218,15 @@ function ActionCalculator({
     }
   }
 
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card>
-        <CollapsibleTrigger className="w-full text-left">
-          <CardHeader className="cursor-pointer select-none">
-            <div className="flex items-center gap-3">
-              <Calculator className="size-5 shrink-0 text-primary" />
-              <div className="min-w-0 flex-1">
-                <CardTitle>{config.title}</CardTitle>
-                <CardDescription>{config.description}</CardDescription>
-              </div>
-              {isOpen ? (
-                <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
-              )}
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
+  const disclaimer = config.disclaimer ? (
+    <p className="mt-1 text-xs text-amber-100/80">
+      <span className="font-semibold text-amber-100">Disclaimer:</span>{" "}
+      {config.disclaimer}
+    </p>
+  ) : null
 
-        <CollapsibleContent>
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+  const formContent = (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={`${config.fieldIdPrefix}-units`}>
@@ -398,6 +389,43 @@ function ActionCalculator({
                 </div>
               ) : null}
             </form>
+  )
+
+  if (isStandalone) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="text-sm text-muted-foreground">{config.description}</p>
+          {disclaimer}
+        </div>
+        {formContent}
+      </div>
+    )
+  }
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card>
+        <CollapsibleTrigger className="w-full text-left">
+          <CardHeader className="cursor-pointer select-none">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <CardTitle>{config.title}</CardTitle>
+                <CardDescription>{config.description}</CardDescription>
+                {isOpen ? disclaimer : null}
+              </div>
+              {isOpen ? (
+                <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
+            {formContent}
           </CardContent>
         </CollapsibleContent>
       </Card>
@@ -405,14 +433,19 @@ function ActionCalculator({
   )
 }
 
-export function CovertActionCalculator({ defaultOpen = false }: CalculatorProps) {
+export function CovertActionCalculator({
+  defaultOpen = false,
+  displayMode,
+}: CalculatorProps) {
   return (
     <ActionCalculator
       defaultOpen={defaultOpen}
+      displayMode={displayMode}
       config={{
         title: "Covert Action",
         description:
           "Calculate covert action from spies, covert level, tech bonus, and race bonus.",
+        disclaimer: "",
         unitLabel: "Spies",
         unitPlaceholder: "Spy count",
         levelLabel: "Covert Level",
@@ -428,14 +461,19 @@ export function CovertActionCalculator({ defaultOpen = false }: CalculatorProps)
   )
 }
 
-export function AntiCovertActionCalculator({ defaultOpen = false }: CalculatorProps) {
+export function AntiCovertActionCalculator({
+  defaultOpen = false,
+  displayMode,
+}: CalculatorProps) {
   return (
     <ActionCalculator
       defaultOpen={defaultOpen}
+      displayMode={displayMode}
       config={{
         title: "Anti-Covert Action",
         description:
           "Calculate anti-covert action from spykillers, AC level, tech bonus, and race bonus.",
+        disclaimer: "",
         unitLabel: "Spykillers",
         unitPlaceholder: "Spykiller count",
         levelLabel: "AC Level",

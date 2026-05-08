@@ -1,5 +1,5 @@
 import { type FormEvent, type KeyboardEvent, useState } from "react"
-import { Calculator, Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -71,10 +71,15 @@ const parseIntegerInput = (value: string): number | null => {
 
 interface CalculatorProps {
   defaultOpen?: boolean
+  displayMode?: "accordion" | "standalone"
 }
 
-export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps) {
+export function SkillUpgradeCalculator({
+  defaultOpen = false,
+  displayMode = "accordion",
+}: CalculatorProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const isStandalone = displayMode === "standalone"
   const [upgradeLevel, setUpgradeLevel] = useState("")
   const [currentLevel, setCurrentLevel] = useState("")
   const [targetLevel, setTargetLevel] = useState("")
@@ -167,32 +172,18 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
     }
   }
 
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card>
-        <CollapsibleTrigger className="w-full text-left">
-          <CardHeader className="cursor-pointer select-none">
-            <div className="flex items-center gap-3">
-              <Calculator className="size-5 shrink-0 text-primary" />
-              <div className="min-w-0 flex-1">
-                <CardTitle>Intel/Counter-Intel Skill Calculator</CardTitle>
-                <CardDescription>
-                  Calculate single-upgrade cost and total cost to reach a target
-                  skill level.
-                </CardDescription>
-              </div>
-              {isOpen ? (
-                <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
-              )}
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
+  const description =
+    "Calculate single-upgrade cost and total cost to reach a target skill level."
+  const disclaimer = ""
+  const disclaimerContent = disclaimer ? (
+    <p className="mt-1 text-xs text-amber-100/80">
+      <span className="font-semibold text-amber-100">Disclaimer:</span>{" "}
+      {disclaimer}
+    </p>
+  ) : null
 
-        <CollapsibleContent>
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+  const formContent = (
+    <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid items-end gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="space-y-2">
                   <Label htmlFor="current-level">Current Skill Level</Label>
@@ -337,6 +328,43 @@ export function SkillUpgradeCalculator({ defaultOpen = false }: CalculatorProps)
                 </div>
               )}
             </form>
+  )
+
+  if (isStandalone) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="text-sm text-muted-foreground">{description}</p>
+          {disclaimerContent}
+        </div>
+        {formContent}
+      </div>
+    )
+  }
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card>
+        <CollapsibleTrigger className="w-full text-left">
+          <CardHeader className="cursor-pointer select-none">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <CardTitle>Intel/Counter-Intel Skill Calculator</CardTitle>
+                <CardDescription>{description}</CardDescription>
+                {isOpen ? disclaimerContent : null}
+              </div>
+              {isOpen ? (
+                <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
+            {formContent}
           </CardContent>
         </CollapsibleContent>
       </Card>
