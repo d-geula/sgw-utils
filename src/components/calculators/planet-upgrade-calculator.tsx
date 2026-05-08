@@ -204,7 +204,7 @@ export function PlanetUpgradeCalculator({
 
   const description =
     "Calculate upgrade costs and projected values for different planet types."
-  const disclaimer = ""
+  const disclaimer = "Probably only accurate for max size planets; needs work."
   const disclaimerContent = disclaimer ? (
     <p className="mt-1 text-xs text-amber-100/80">
       <span className="font-semibold text-amber-100">Disclaimer:</span>{" "}
@@ -248,7 +248,7 @@ export function PlanetUpgradeCalculator({
                     type="text"
                     value={currentValue}
                     onChange={(e) => setCurrentValue(e.target.value)}
-                    placeholder="Current value"
+                    placeholder="0"
                   />
                 </div>
 
@@ -261,7 +261,7 @@ export function PlanetUpgradeCalculator({
                     type="text"
                     value={upgradesToBuy}
                     onChange={(e) => setUpgradesToBuy(e.target.value)}
-                    placeholder="Number of upgrades"
+                    placeholder="0"
                   />
                 </div>
               </div>

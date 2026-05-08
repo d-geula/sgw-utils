@@ -208,7 +208,7 @@ export function UnitProductionCalculator({
                     type="text"
                     value={currentUnitProduction}
                     onChange={(e) => setCurrentUnitProduction(e.target.value)}
-                    placeholder="Current unit production"
+                    placeholder="0"
                   />
                 </div>
 
@@ -221,7 +221,7 @@ export function UnitProductionCalculator({
                     type="text"
                     value={desiredUnitProduction}
                     onChange={(e) => setDesiredUnitProduction(e.target.value)}
-                    placeholder="Desired unit production"
+                    placeholder="0"
                   />
                 </div>
               </div>

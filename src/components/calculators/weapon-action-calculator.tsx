@@ -313,7 +313,7 @@ function WeaponActionCalculator({
             type="text"
             value={normalUnits}
             onChange={(e) => setNormalUnits(e.target.value)}
-            placeholder="Normal/merc unit count"
+            placeholder="0"
           />
         </div>
 
@@ -326,7 +326,7 @@ function WeaponActionCalculator({
             type="text"
             value={superUnits}
             onChange={(e) => setSuperUnits(e.target.value)}
-            placeholder="Super unit count"
+            placeholder="0"
           />
         </div>
       </div>
@@ -342,7 +342,7 @@ function WeaponActionCalculator({
               type="text"
               value={weapons}
               onChange={(e) => setWeapons(e.target.value)}
-              placeholder="Weapon count"
+              placeholder="0"
               className="min-w-0 flex-1"
             />
             <CheckboxToggle
@@ -397,7 +397,7 @@ function WeaponActionCalculator({
             type="text"
             value={raceBonusPercent}
             onChange={(e) => setRaceBonusPercent(e.target.value)}
-            placeholder="e.g. 25"
+            placeholder="0"
           />
         </div>
 
@@ -551,7 +551,7 @@ export function StrikeActionCalculator({
           tier2: { label: "Tier 2", bonusNumerator: 1635, bonusDenominator: 1000 },
         },
         currentLabel: "Current Strike Action (Optional)",
-        currentPlaceholder: "Current strike action",
+        currentPlaceholder: "Optional comparison value",
         totalLabel: "Total Strike",
         baseLabel: "Base Strike",
         fieldIdPrefix: "strike",
@@ -581,7 +581,7 @@ export function DefenceActionCalculator({
           tier2: { label: "Tier 2", bonusNumerator: 140, bonusDenominator: 100 },
         },
         currentLabel: "Current Defence Action (Optional)",
-        currentPlaceholder: "Current defence action",
+        currentPlaceholder: "Optional comparison value",
         totalLabel: "Total Defence",
         baseLabel: "Base Defence",
         fieldIdPrefix: "defence",

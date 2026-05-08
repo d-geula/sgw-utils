@@ -192,7 +192,7 @@ export function SkillUpgradeCalculator({
                     type="text"
                     value={currentLevel}
                     onChange={(e) => setCurrentLevel(e.target.value)}
-                    placeholder="Current level"
+                    placeholder="0"
                   />
                 </div>
 
@@ -203,7 +203,7 @@ export function SkillUpgradeCalculator({
                     type="text"
                     value={targetLevel}
                     onChange={(e) => setTargetLevel(e.target.value)}
-                    placeholder="Target level"
+                    placeholder="0"
                   />
                 </div>
               </div>
@@ -219,7 +219,7 @@ export function SkillUpgradeCalculator({
                   type="text"
                   value={upgradeLevel}
                   onChange={(e) => setUpgradeLevel(e.target.value)}
-                  placeholder="Skill level"
+                  placeholder="0"
                 />
                 <p className="text-xs text-muted-foreground">
                   Uses level X to calculate the cost for upgrading to level X+1.

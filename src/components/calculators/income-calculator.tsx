@@ -4,7 +4,6 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  CircleQuestionMark,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,6 +21,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  createDefaultPlanetContributions,
+  getPlanetContributionSummary,
+  type PlanetContributionSummary,
+} from "@/components/calculators/planet-contributions"
+import {
+  PlanetContributionsInput,
+} from "@/components/calculators/planet-contributions-input"
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -38,9 +45,6 @@ interface CalculationResults {
   adsBonus: number
   raceBonus: number
   planetContribution: number
-  rawPlanetContribution: number
-  planetContributionReduction: number
-  planetContributionCap: number
   houseBonus: number
   incomePenalty: number
   commanderBonus: number
@@ -65,9 +69,6 @@ const UNTRAINED_INCOME = 20
 const MINER_INCOME = 80
 const TURNS_PER_DAY = 48
 const DAYS_PER_PPT = 2
-const PLANET_COUNT_OPTIONS = Array.from({ length: 10 }, (_, index) =>
-  String(index + 1),
-)
 
 const ALERT_OPTIONS: AlertOption[] = [
   { label: "None", value: "none", penalty: 0 },
@@ -222,8 +223,9 @@ export function IncomeCalculator({
   const [untrainedUnits, setUntrainedUnits] = useState("")
   const [miners, setMiners] = useState("")
   const [raceBonusPercent, setRaceBonusPercent] = useState("")
-  const [planetContribution, setPlanetContribution] = useState("")
-  const [planetCount, setPlanetCount] = useState("1")
+  const [planetContributions, setPlanetContributions] = useState(() =>
+    createDefaultPlanetContributions(),
+  )
   const [currentIncome, setCurrentIncome] = useState("")
   const [hasAds, setHasAds] = useState(false)
   const [hasHouseBonus, setHasHouseBonus] = useState(false)
@@ -236,6 +238,16 @@ export function IncomeCalculator({
   const selectedAlertOption =
     ALERT_OPTIONS.find((option) => option.value === alertLevel) ??
     ALERT_OPTIONS[0]
+  const displayUntrained = parseNonNegativeNumberOrZero(untrainedUnits) ?? 0
+  const displayMiners = parseNonNegativeNumberOrZero(miners) ?? 0
+  const displayRaceBonus = parseNonNegativeNumberOrZero(raceBonusPercent) ?? 0
+  const displayBaseIncome =
+    displayUntrained * UNTRAINED_INCOME + displayMiners * MINER_INCOME
+  const displayAdsBonus = hasAds ? displayBaseIncome * 0.01 : 0
+  const displayPlanetContributionCap =
+    displayBaseIncome +
+    displayAdsBonus +
+    (displayBaseIncome + displayAdsBonus) * (displayRaceBonus / 100)
 
   const calculate = () => {
     setError(null)
@@ -243,8 +255,6 @@ export function IncomeCalculator({
     const parsedUntrained = parseNonNegativeNumberOrZero(untrainedUnits)
     const parsedMiners = parseNonNegativeNumberOrZero(miners)
     const parsedRaceBonus = parseNonNegativeNumberOrZero(raceBonusPercent)
-    const parsedPlanetContribution =
-      parseNonNegativeNumberOrZero(planetContribution)
     const parsedCurrentIncome = currentIncome.trim()
       ? parseNonNegativeNumberOrZero(currentIncome)
       : undefined
@@ -253,7 +263,6 @@ export function IncomeCalculator({
       parsedUntrained === null ||
       parsedMiners === null ||
       parsedRaceBonus === null ||
-      parsedPlanetContribution === null ||
       parsedCurrentIncome === null
     ) {
       setError("Enter valid non-negative numbers.")
@@ -266,15 +275,22 @@ export function IncomeCalculator({
     const rawAdsBonus = hasAds ? baseIncome * 0.01 : 0
     const rawRaceBonus =
       (baseIncome + rawAdsBonus) * (parsedRaceBonus / 100)
-    const parsedPlanetCount = Number(planetCount)
     const planetContributionCap = baseIncome + rawAdsBonus + rawRaceBonus
-    const averagePlanetContribution =
-      parsedPlanetContribution / parsedPlanetCount
+    const planetContributionSummary: PlanetContributionSummary | null =
+      getPlanetContributionSummary(
+        planetContributions,
+        planetContributionCap,
+        TURNS_PER_DAY,
+      )
+
+    if (planetContributionSummary === null) {
+      setError("Enter valid non-negative numbers.")
+      setResults(null)
+      return
+    }
+
     const rawPlanetContribution =
-      Math.min(averagePlanetContribution, planetContributionCap) *
-      parsedPlanetCount
-    const planetContributionReduction =
-      parsedPlanetContribution - rawPlanetContribution
+      planetContributionSummary.effectiveTotal
     const houseBonusBase =
       baseIncome + rawAdsBonus + rawRaceBonus + rawPlanetContribution
     const rawHouseBonus = hasHouseBonus ? houseBonusBase * 0.1 : 0
@@ -304,9 +320,6 @@ export function IncomeCalculator({
       adsBonus: Math.round(rawAdsBonus),
       raceBonus: Math.round(rawRaceBonus),
       planetContribution: Math.round(rawPlanetContribution),
-      rawPlanetContribution: Math.round(parsedPlanetContribution),
-      planetContributionReduction: Math.round(planetContributionReduction),
-      planetContributionCap: Math.round(planetContributionCap),
       houseBonus: Math.round(rawHouseBonus),
       incomePenalty: Math.round(rawIncomePenalty),
       commanderBonus: Math.round(rawCommanderBonus),
@@ -354,285 +367,240 @@ export function IncomeCalculator({
 
   const formContent = (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="income-untrained-units">
-                    Untrained Units
-                  </Label>
-                  <Input
-                    id="income-untrained-units"
-                    type="text"
-                    value={untrainedUnits}
-                    onChange={(event) => setUntrainedUnits(event.target.value)}
-                    placeholder="Units worth 20 income each"
-                  />
-                </div>
+      <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="income-untrained-units">
+            Untrained Units
+          </Label>
+          <Input
+            id="income-untrained-units"
+            type="text"
+            value={untrainedUnits}
+            onChange={(event) => setUntrainedUnits(event.target.value)}
+            placeholder="20 Naq / unit"
+          />
+        </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="income-miners">Miners/Lifers</Label>
-                  <Input
-                    id="income-miners"
-                    type="text"
-                    value={miners}
-                    onChange={(event) => setMiners(event.target.value)}
-                    placeholder="Units worth 80 income each"
-                  />
-                </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="income-miners">Miners/Lifers</Label>
+          <Input
+            id="income-miners"
+            type="text"
+            value={miners}
+            onChange={(event) => setMiners(event.target.value)}
+            placeholder="80 Naq / unit"
+          />
+        </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="income-race-bonus">Race Bonus (%)</Label>
-                  <Input
-                    id="income-race-bonus"
-                    type="text"
-                    value={raceBonusPercent}
-                    onChange={(event) =>
-                      setRaceBonusPercent(event.target.value)
-                    }
-                    placeholder="Race bonus percent"
-                  />
-                </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="income-race-bonus">Race Bonus (%)</Label>
+          <Input
+            id="income-race-bonus"
+            type="text"
+            value={raceBonusPercent}
+            onChange={(event) =>
+              setRaceBonusPercent(event.target.value)
+            }
+            placeholder="0"
+          />
+        </div>
 
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="income-planet-contribution">
-                      Planet(s) Contribution
-                    </Label>
-                    <span
-                      title="Uses average planet income. Each planet is capped at base income + ads + race bonus, so mixed low/high planets may be approximate."
-                    >
-                      <CircleQuestionMark
-                        className="size-4 text-muted-foreground"
-                        aria-label="Planet contribution cap note"
-                      />
-                    </span>
+        <PlanetContributionsInput
+          id="income-planet-contributions"
+          values={planetContributions}
+          cap={displayPlanetContributionCap}
+          valueDivisor={TURNS_PER_DAY}
+          description="Enter each planet's daily income contribution. Values are automatically converted to per-turn income."
+          capLabel="Per-planet cap"
+          capValueSuffix=" / day"
+          rawTotalLabel="Raw total"
+          rawTotalValueSuffix=" / day"
+          onChange={setPlanetContributions}
+          formatNumber={formatNumber}
+          formatCompact={formatSmart}
+        />
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="income-alert-level">Realm Alert Level</Label>
+          <Select
+            value={alertLevel}
+            onValueChange={(value) =>
+              setAlertLevel(value as AlertLevel)
+            }
+          >
+            <SelectTrigger id="income-alert-level" className="w-full">
+              <SelectValue>{selectedAlertOption.label}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {ALERT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="income-current-income">
+            Current Income (Optional)
+          </Label>
+          <Input
+            id="income-current-income"
+            type="text"
+            value={currentIncome}
+            onChange={(event) => setCurrentIncome(event.target.value)}
+            placeholder="Optional comparison value"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <CheckboxToggle
+          id="income-ads"
+          label="Ads"
+          detail="+1%"
+          checked={hasAds}
+          onChange={setHasAds}
+        />
+        <CheckboxToggle
+          id="income-house-bonus"
+          label="House"
+          detail="+10%"
+          checked={hasHouseBonus}
+          onChange={setHasHouseBonus}
+        />
+        <CheckboxToggle
+          id="income-no-commander"
+          label="No Commander"
+          detail="+10%"
+          checked={hasNoCommanderBonus}
+          onChange={setHasNoCommanderBonus}
+        />
+        <CheckboxToggle
+          id="income-nox"
+          label="NOX"
+          detail="-10%"
+          checked={hasNoxPenalty}
+          onChange={setHasNoxPenalty}
+        />
+      </div>
+
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      <Button type="submit" className="w-full">
+        Calculate
+      </Button>
+
+      {results ? (
+        <div className="grid items-stretch gap-4 border-t pt-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="rounded-lg border border-border bg-muted/20 p-4">
+            <ResultRow
+              label="Base Income"
+              value={results.baseIncome}
+              kind="base"
+            />
+            <ResultRow label="Ads" value={results.adsBonus} />
+            <ResultRow label="Race Bonus" value={results.raceBonus} />
+            <ResultRow
+              label="Planet Contribution"
+              value={results.planetContribution}
+            />
+            <ResultRow label="House Bonus" value={results.houseBonus} />
+            <ResultRow
+              label="Realm Alert/NOX"
+              value={results.incomePenalty}
+              kind="negative"
+            />
+            <ResultRow
+              label="No Commander"
+              value={results.commanderBonus}
+            />
+          </div>
+
+          <div className="flex h-full flex-col gap-3">
+            <div
+              className="flex flex-1 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20"
+              onClick={() => {
+                void copyTotalPerTurn()
+              }}
+              onKeyDown={handleTotalKeyDown}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="flex w-full items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="mb-1 text-sm text-muted-foreground">
+                    Total / Turn
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_7rem]">
-                    <Input
-                      id="income-planet-contribution"
-                      type="text"
-                      value={planetContribution}
-                      onChange={(event) =>
-                        setPlanetContribution(event.target.value)
-                      }
-                      placeholder="Total planet income"
-                    />
-                    <Select
-                      value={planetCount}
-                      onValueChange={(value) => {
-                        if (value) {
-                          setPlanetCount(value)
-                        }
-                      }}
-                    >
-                      <SelectTrigger
-                        aria-label="Number of planets"
-                        className="w-full"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          {PLANET_COUNT_OPTIONS.map((count) => (
-                            <SelectItem key={count} value={count}>
-                              {count}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="income-alert-level">Realm Alert Level</Label>
-                  <Select
-                    value={alertLevel}
-                    onValueChange={(value) =>
-                      setAlertLevel(value as AlertLevel)
-                    }
+                  <div
+                    className="text-2xl font-bold"
+                    title={`${formatNumber(results.totalPerTurn)} (click to copy raw)`}
                   >
-                    <SelectTrigger id="income-alert-level" className="w-full">
-                      <SelectValue>{selectedAlertOption.label}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {ALERT_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                    {formatSmart(results.totalPerTurn)}
+                    {results.difference !== null ? (
+                      <span
+                        className={cn(
+                          "ml-2 text-lg",
+                          results.difference >= 0
+                            ? "text-green-500"
+                            : "text-destructive",
+                        )}
+                        title={formatNumber(results.difference)}
+                      >
+                        ({results.difference >= 0 ? "+" : ""}
+                        {formatSmart(results.difference)})
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
+                <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                  {copiedTotal ? (
+                    <>
+                      <Check />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy />
+                      Copy raw
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="income-current-income">
-                    Current Income (Optional)
-                  </Label>
-                  <Input
-                    id="income-current-income"
-                    type="text"
-                    value={currentIncome}
-                    onChange={(event) => setCurrentIncome(event.target.value)}
-                    placeholder="Optional comparison value"
-                  />
+            <div className="grid flex-[2] gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="rounded-lg bg-muted/30 p-4">
+                <div className="mb-1 text-sm text-muted-foreground">
+                  Total / Day
+                </div>
+                <div
+                  className="text-xl font-bold"
+                  title={formatNumber(results.totalPerDay)}
+                >
+                  {formatSmart(results.totalPerDay)}
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <CheckboxToggle
-                  id="income-ads"
-                  label="Ads"
-                  detail="+1%"
-                  checked={hasAds}
-                  onChange={setHasAds}
-                />
-                <CheckboxToggle
-                  id="income-house-bonus"
-                  label="House"
-                  detail="+10%"
-                  checked={hasHouseBonus}
-                  onChange={setHasHouseBonus}
-                />
-                <CheckboxToggle
-                  id="income-no-commander"
-                  label="No Commander"
-                  detail="+10%"
-                  checked={hasNoCommanderBonus}
-                  onChange={setHasNoCommanderBonus}
-                />
-                <CheckboxToggle
-                  id="income-nox"
-                  label="NOX"
-                  detail="-10%"
-                  checked={hasNoxPenalty}
-                  onChange={setHasNoxPenalty}
-                />
-              </div>
-
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-              <Button type="submit" className="w-full">
-                Calculate
-              </Button>
-
-              {results ? (
-                <div className="grid items-stretch gap-4 border-t pt-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-                  <div className="rounded-lg border border-border bg-muted/20 p-4">
-                    <ResultRow
-                      label="Base Income"
-                      value={results.baseIncome}
-                      kind="base"
-                    />
-                    <ResultRow label="Ads" value={results.adsBonus} />
-                    <ResultRow label="Race Bonus" value={results.raceBonus} />
-                    <ResultRow
-                      label="Planet(s) Contribution"
-                      value={results.planetContribution}
-                      description={
-                        results.planetContributionReduction > 0
-                          ? `Capped by ${formatSmart(
-                              results.planetContributionReduction,
-                            )}; max ${formatSmart(
-                              results.planetContributionCap,
-                            )} per planet`
-                          : undefined
-                      }
-                    />
-                    <ResultRow label="House Bonus" value={results.houseBonus} />
-                    <ResultRow
-                      label="Realm Alert/NOX"
-                      value={results.incomePenalty}
-                      kind="negative"
-                    />
-                    <ResultRow
-                      label="No Commander"
-                      value={results.commanderBonus}
-                    />
-                  </div>
-
-                  <div className="flex h-full flex-col gap-3">
-                    <div
-                      className="flex flex-1 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20"
-                      onClick={() => {
-                        void copyTotalPerTurn()
-                      }}
-                      onKeyDown={handleTotalKeyDown}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <div className="flex w-full items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="mb-1 text-sm text-muted-foreground">
-                            Total / Turn
-                          </div>
-                          <div
-                            className="text-2xl font-bold"
-                            title={`${formatNumber(results.totalPerTurn)} (click to copy raw)`}
-                          >
-                            {formatSmart(results.totalPerTurn)}
-                            {results.difference !== null ? (
-                              <span
-                                className={cn(
-                                  "ml-2 text-lg",
-                                  results.difference >= 0
-                                    ? "text-green-500"
-                                    : "text-destructive",
-                                )}
-                                title={formatNumber(results.difference)}
-                              >
-                                ({results.difference >= 0 ? "+" : ""}
-                                {formatSmart(results.difference)})
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                          {copiedTotal ? (
-                            <>
-                              <Check />
-                              Copied
-                            </>
-                          ) : (
-                            <>
-                              <Copy />
-                              Copy raw
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid flex-[2] gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                      <div className="rounded-lg bg-muted/30 p-4">
-                        <div className="mb-1 text-sm text-muted-foreground">
-                          Total / Day
-                        </div>
-                        <div
-                          className="text-xl font-bold"
-                          title={formatNumber(results.totalPerDay)}
-                        >
-                          {formatSmart(results.totalPerDay)}
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg bg-muted/30 p-4">
-                        <div className="mb-1 text-sm text-muted-foreground">
-                          Total / PPT
-                        </div>
-                        <div
-                          className="text-xl font-bold"
-                          title={formatNumber(results.totalPerPpt)}
-                        >
-                          {formatSmart(results.totalPerPpt)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <div className="rounded-lg bg-muted/30 p-4">
+                <div className="mb-1 text-sm text-muted-foreground">
+                  Total / PPT
                 </div>
-              ) : null}
-            </form>
+                <div
+                  className="text-xl font-bold"
+                  title={formatNumber(results.totalPerPpt)}
+                >
+                  {formatSmart(results.totalPerPpt)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </form>
   )
 
   if (isStandalone) {

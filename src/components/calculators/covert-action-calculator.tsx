@@ -295,7 +295,7 @@ function ActionCalculator({
                     type="text"
                     value={raceBonusPercent}
                     onChange={(e) => setRaceBonusPercent(e.target.value)}
-                    placeholder="e.g. 25"
+                    placeholder="0"
                   />
                 </div>
               </div>
@@ -447,11 +447,11 @@ export function CovertActionCalculator({
           "Calculate covert action from spies, covert level, tech bonus, and race bonus.",
         disclaimer: "",
         unitLabel: "Spies",
-        unitPlaceholder: "Spy count",
+        unitPlaceholder: "0",
         levelLabel: "Covert Level",
-        levelPlaceholder: "Covert level",
+        levelPlaceholder: "0",
         currentLabel: "Current Covert Action (Optional)",
-        currentPlaceholder: "Current covert action",
+        currentPlaceholder: "Optional comparison value",
         totalLabel: "Total Covert",
         baseLabel: "Base Covert",
         fieldIdPrefix: "covert",
@@ -475,11 +475,11 @@ export function AntiCovertActionCalculator({
           "Calculate anti-covert action from spykillers, AC level, tech bonus, and race bonus.",
         disclaimer: "",
         unitLabel: "Spykillers",
-        unitPlaceholder: "Spykiller count",
+        unitPlaceholder: "0",
         levelLabel: "AC Level",
-        levelPlaceholder: "AC level",
+        levelPlaceholder: "0",
         currentLabel: "Current Anti-Covert Action (Optional)",
-        currentPlaceholder: "Current anti-covert action",
+        currentPlaceholder: "Optional comparison value",
         totalLabel: "Total Anti-Covert",
         baseLabel: "Base AC",
         fieldIdPrefix: "anti-covert",

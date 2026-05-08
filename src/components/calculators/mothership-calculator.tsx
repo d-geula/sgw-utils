@@ -125,11 +125,13 @@ function CapacityInput({
   label,
   value,
   onChange,
+  placeholder = "0",
 }: {
   id: string
   label: string
   value: string
   onChange: (value: string) => void
+  placeholder?: string
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -139,7 +141,7 @@ function CapacityInput({
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="0"
+        placeholder={placeholder}
       />
     </div>
   )
@@ -430,6 +432,7 @@ export function MothershipCalculator({
                   label="Current Mothership Power (Optional)"
                   value={currentMothershipPower}
                   onChange={setCurrentMothershipPower}
+                  placeholder="Optional comparison value"
                 />
               </div>
 
