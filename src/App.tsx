@@ -143,7 +143,7 @@ export function App() {
           <header className="mb-6">
             <a
               href="/"
-              className="block text-2xl font-bold tracking-tight transition-colors hover:text-sidebar-primary"
+              className="block text-2xl font-bold tracking-tight text-sidebar-foreground transition-colors hover:text-amber-100"
               onClick={(event) => {
                 event.preventDefault()
                 setSelection({ type: "category", id: CATEGORIES[0].id })
