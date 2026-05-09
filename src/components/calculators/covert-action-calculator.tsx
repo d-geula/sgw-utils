@@ -23,6 +23,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import {
+  createDefaultPlanetContributions,
+  getPlanetContributionSummary,
+  type PlanetContributionKind,
+  type PlanetContributionSummary,
+} from "@/components/calculators/planet-contributions"
+import {
+  PlanetContributionsInput,
+} from "@/components/calculators/planet-contributions-input"
 
 interface CalculationResults {
   totalAction: number
@@ -30,6 +39,7 @@ interface CalculationResults {
   baseAction: number
   techBonusAction: number
   raceBonusAction: number
+  planetContributionAction: number
   modifierBonusAction: number
 }
 
@@ -55,6 +65,7 @@ interface ActionCalculatorConfig {
   currentPlaceholder: string
   totalLabel: string
   baseLabel: string
+  planetContributionKind: PlanetContributionKind
   fieldIdPrefix: string
   getBaseAction: (units: number, level: number) => number
 }
@@ -93,6 +104,15 @@ const parseNonNegativeNumber = (value: string): number | null => {
   }
 
   return parsed
+}
+
+const parseNonNegativeNumberOrZero = (value: string): number | null => {
+  const normalized = value.replace(/,/g, "").trim()
+  if (!normalized) {
+    return 0
+  }
+
+  return parseNonNegativeNumber(value)
 }
 
 function ResultRow({
@@ -140,10 +160,24 @@ function ActionCalculator({
   const [level, setLevel] = useState("")
   const [techBonus, setTechBonus] = useState<TechBonusKey>("none")
   const [raceBonusPercent, setRaceBonusPercent] = useState("")
+  const [planetContributions, setPlanetContributions] = useState(() =>
+    createDefaultPlanetContributions(),
+  )
   const [currentAction, setCurrentAction] = useState("")
   const [results, setResults] = useState<CalculationResults | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copiedTotal, setCopiedTotal] = useState(false)
+  const displayUnits = parseNonNegativeNumberOrZero(units) ?? 0
+  const displayLevel = parseNonNegativeNumberOrZero(level) ?? 0
+  const displayRaceBonus = parseNonNegativeNumberOrZero(raceBonusPercent) ?? 0
+  const displayBaseAction = config.getBaseAction(displayUnits, displayLevel)
+  const displayTechMultiplier = TECH_BONUS_OPTIONS[techBonus].multiplier
+  const displayTechBonusAction =
+    displayBaseAction * (displayTechMultiplier - 1)
+  const displayRaceBonusAction =
+    (displayBaseAction + displayTechBonusAction) * (displayRaceBonus / 100)
+  const displayPlanetContributionCap =
+    (displayBaseAction + displayTechBonusAction + displayRaceBonusAction) / 2
 
   const calculate = () => {
     setError(null)
@@ -180,12 +214,35 @@ function ActionCalculator({
     const techMultiplier = TECH_BONUS_OPTIONS[techBonus].multiplier
     const techBonusAction = baseAction * (techMultiplier - 1)
     const raceBonusAction = (baseAction + techBonusAction) * (raceBonusValue / 100)
+    const planetContributionCap =
+      (baseAction + techBonusAction + raceBonusAction) / 2
+    const planetContributionSummary: PlanetContributionSummary | null =
+      getPlanetContributionSummary(
+        planetContributions,
+        planetContributionCap,
+      )
+
+    if (planetContributionSummary === null) {
+      setError("Enter valid non-negative numbers.")
+      setResults(null)
+      return
+    }
+
+    const planetContributionAction = planetContributionSummary.effectiveTotal
     const totalAction = Math.floor(
-      (baseAction + techBonusAction + raceBonusAction + parsedUnits) *
+      (baseAction +
+        techBonusAction +
+        raceBonusAction +
+        planetContributionAction +
+        parsedUnits) *
       FINAL_MODIFIER,
     )
     const modifierBonusAction =
-      totalAction - baseAction - techBonusAction - raceBonusAction
+      totalAction -
+      baseAction -
+      techBonusAction -
+      raceBonusAction -
+      planetContributionAction
 
     const difference =
       parsedCurrentAction === null ? null : totalAction - parsedCurrentAction
@@ -196,6 +253,7 @@ function ActionCalculator({
       baseAction,
       techBonusAction,
       raceBonusAction,
+      planetContributionAction,
       modifierBonusAction,
     })
   }
@@ -266,7 +324,9 @@ function ActionCalculator({
                   </Label>
                   <Select
                     value={techBonus}
-                    onValueChange={(value) => setTechBonus(value as TechBonusKey)}
+                    onValueChange={(value) =>
+                      setTechBonus(value as TechBonusKey)
+                    }
                   >
                     <SelectTrigger
                       id={`${config.fieldIdPrefix}-tech-bonus`}
@@ -281,15 +341,30 @@ function ActionCalculator({
                       alignItemWithTrigger={false}
                       collisionAvoidance={{ side: "none" }}
                     >
-                      {Object.entries(TECH_BONUS_OPTIONS).map(([key, option]) => (
-                        <SelectItem key={key} value={key}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
+                      {Object.entries(TECH_BONUS_OPTIONS).map(
+                        ([key, option]) => (
+                          <SelectItem key={key} value={key}>
+                            {option.label}
+                          </SelectItem>
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
 
+                <PlanetContributionsInput
+                  id={`${config.fieldIdPrefix}-planet-contributions`}
+                  values={planetContributions}
+                  cap={displayPlanetContributionCap}
+                  kind={config.planetContributionKind}
+                  description={`Enter each planet's ${config.planetContributionKind} contribution.`}
+                  onChange={setPlanetContributions}
+                  formatNumber={formatNumber}
+                  formatCompact={formatCompact}
+                />
+              </div>
+
+              <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={`${config.fieldIdPrefix}-race-bonus`}>
                     Race Bonus (%)
@@ -302,19 +377,19 @@ function ActionCalculator({
                     placeholder="0"
                   />
                 </div>
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`${config.fieldIdPrefix}-current-action`}>
-                  {config.currentLabel}
-                </Label>
-                <Input
-                  id={`${config.fieldIdPrefix}-current-action`}
-                  type="text"
-                  value={currentAction}
-                  onChange={(e) => setCurrentAction(e.target.value)}
-                  placeholder={config.currentPlaceholder}
-                />
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor={`${config.fieldIdPrefix}-current-action`}>
+                    {config.currentLabel}
+                  </Label>
+                  <Input
+                    id={`${config.fieldIdPrefix}-current-action`}
+                    type="text"
+                    value={currentAction}
+                    onChange={(e) => setCurrentAction(e.target.value)}
+                    placeholder={config.currentPlaceholder}
+                  />
+                </div>
               </div>
 
               {error ? <p className="text-xs text-destructive">{error}</p> : null}
@@ -335,6 +410,11 @@ function ActionCalculator({
                     <ResultRow
                       label="Race Bonus"
                       value={results.raceBonusAction}
+                      kind="positive"
+                    />
+                    <ResultRow
+                      label="Planet Contribution"
+                      value={results.planetContributionAction}
                       kind="positive"
                     />
                     <ResultRow
@@ -458,6 +538,7 @@ export function CovertActionCalculator({
         currentPlaceholder: "Optional comparison value",
         totalLabel: "Total Covert",
         baseLabel: "Base Covert",
+        planetContributionKind: "covert",
         fieldIdPrefix: "covert",
         getBaseAction: (spies, covertLevel) => spies * 2 ** (covertLevel / 2),
       }}
@@ -486,6 +567,7 @@ export function AntiCovertActionCalculator({
         currentPlaceholder: "Optional comparison value",
         totalLabel: "Total Anti-Covert",
         baseLabel: "Base AC",
+        planetContributionKind: "anti-covert",
         fieldIdPrefix: "anti-covert",
         getBaseAction: (spykillers, acLevel) =>
           spykillers * 2 * 2 ** (acLevel / 2),
