@@ -13,6 +13,8 @@ import {
   StrikeActionCalculator,
 } from "@/components/calculators/weapon-action-calculator"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { Menu, X } from "lucide-react"
 
 type CalculatorDisplayMode = "accordion" | "standalone"
 
@@ -114,6 +116,7 @@ export function App() {
     type: "category",
     id: CATEGORIES[0].id,
   })
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
 
   const selectedCategory = useMemo(() => {
     if (selection.type === "category") {
@@ -135,6 +138,10 @@ export function App() {
     )
   }, [selection])
   const SelectedCalculatorComponent = selectedCalculator?.Component
+  const updateSelection = (nextSelection: Selection) => {
+    setSelection(nextSelection)
+    setIsMobileNavOpen(false)
+  }
 
   return (
     <div className="dark relative min-h-screen overflow-x-hidden bg-background lg:h-screen lg:overflow-hidden">
@@ -144,14 +151,57 @@ export function App() {
       />
 
       <div className="relative flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:flex-row">
-        <aside className="border-b border-sidebar-border bg-sidebar/90 px-4 py-5 text-sidebar-foreground backdrop-blur lg:h-screen lg:w-72 lg:shrink-0 lg:self-stretch lg:overflow-y-auto lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
-          <header className="mb-6">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-sidebar-border bg-sidebar/95 px-4 py-4 text-sidebar-foreground backdrop-blur lg:hidden">
+          <a
+            href="/"
+            className="min-w-0 text-xl font-bold tracking-tight text-sidebar-foreground transition-colors hover:text-amber-100"
+            onClick={(event) => {
+              event.preventDefault()
+              updateSelection({ type: "category", id: CATEGORIES[0].id })
+            }}
+          >
+            GateWars Utils
+            <span className="ml-2 inline-flex -translate-y-1 rounded-sm border border-amber-200/70 bg-amber-200/10 px-1.5 py-0.5 align-middle text-[0.625rem] font-bold uppercase leading-none tracking-normal text-amber-200 shadow-[1px_1px_0_color-mix(in_oklab,var(--color-amber-200)_35%,transparent)]">
+              WIP
+            </span>
+          </a>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={isMobileNavOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={isMobileNavOpen}
+            aria-controls="calculator-navigation"
+            onClick={() => setIsMobileNavOpen((isOpen) => !isOpen)}
+          >
+            {isMobileNavOpen ? <X /> : <Menu />}
+          </Button>
+        </header>
+
+        {isMobileNavOpen ? (
+          <button
+            type="button"
+            aria-label="Close navigation"
+            className="fixed inset-0 top-[73px] z-20 bg-background/70 backdrop-blur-sm lg:hidden"
+            onClick={() => setIsMobileNavOpen(false)}
+          />
+        ) : null}
+
+        <aside
+          id="calculator-navigation"
+          className={cn(
+            "fixed inset-x-0 top-[73px] z-30 max-h-[calc(100dvh-73px)] overflow-y-auto border-b border-sidebar-border bg-sidebar/95 px-4 py-5 text-sidebar-foreground shadow-lg backdrop-blur lg:static lg:z-auto lg:block lg:h-screen lg:max-h-none lg:w-72 lg:shrink-0 lg:self-stretch lg:border-b-0 lg:border-r lg:px-5 lg:py-6 lg:shadow-none",
+            isMobileNavOpen ? "block" : "hidden",
+          )}
+        >
+          <header className="mb-6 hidden lg:block">
             <a
               href="/"
               className="block text-2xl font-bold tracking-tight text-sidebar-foreground transition-colors hover:text-amber-100"
               onClick={(event) => {
                 event.preventDefault()
-                setSelection({ type: "category", id: CATEGORIES[0].id })
+                updateSelection({ type: "category", id: CATEGORIES[0].id })
               }}
             >
               GateWars Utils
@@ -176,7 +226,7 @@ export function App() {
                   }
                   className="h-auto justify-start px-2 py-2 text-left text-base"
                   onClick={() =>
-                    setSelection({ type: "category", id: category.id })
+                    updateSelection({ type: "category", id: category.id })
                   }
                 >
                   {category.title}
@@ -196,7 +246,7 @@ export function App() {
                       size="sm"
                       className="h-auto justify-start px-2 py-1.5 text-left text-sm text-muted-foreground hover:text-foreground"
                       onClick={() =>
-                        setSelection({
+                        updateSelection({
                           type: "calculator",
                           id: calculator.id,
                         })
