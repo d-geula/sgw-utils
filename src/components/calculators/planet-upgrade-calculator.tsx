@@ -368,7 +368,7 @@ export function PlanetUpgradeCalculator({
           <CardHeader className="cursor-pointer select-none">
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <CardTitle>Planet Upgrade Calculator</CardTitle>
+                <CardTitle>Planet Upgrades</CardTitle>
                 <CardDescription>{description}</CardDescription>
                 {isOpen ? disclaimerContent : null}
               </div>

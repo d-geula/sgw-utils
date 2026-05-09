@@ -349,7 +349,7 @@ export function SkillUpgradeCalculator({
           <CardHeader className="cursor-pointer select-none">
             <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
-                <CardTitle>Intel/Counter-Intel Skill Calculator</CardTitle>
+                <CardTitle>Intel/Counter-Intel Skill</CardTitle>
                 <CardDescription>{description}</CardDescription>
                 {isOpen ? disclaimerContent : null}
               </div>

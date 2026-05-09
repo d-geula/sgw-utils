@@ -306,7 +306,7 @@ export function UnitProductionCalculator({
           <CardHeader className="cursor-pointer select-none">
             <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
-                <CardTitle>Unit Production Calculator</CardTitle>
+                <CardTitle>Unit Production</CardTitle>
                 <CardDescription>{description}</CardDescription>
                 {isOpen ? disclaimerContent : null}
               </div>
