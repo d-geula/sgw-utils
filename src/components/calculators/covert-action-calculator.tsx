@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 interface CalculationResults {
   totalAction: number
@@ -112,7 +113,10 @@ function ResultRow({
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-border/60 py-2 last:border-b-0">
       <div className="min-w-0 text-sm text-muted-foreground">{label}</div>
       <div
-        className="text-right text-sm font-semibold"
+        className={cn(
+          "text-right text-sm font-semibold",
+          kind === "positive" && value !== 0 ? "text-green-600" : undefined,
+        )}
         title={formatNumber(value)}
       >
         {displayValue}
@@ -361,7 +365,7 @@ function ActionCalculator({
                             {formatCompact(results.totalAction)}
                             {results.difference !== null ? (
                               <span
-                                className={`ml-2 text-lg ${results.difference >= 0 ? "text-green-500" : "text-destructive"}`}
+                                className={`ml-2 text-lg ${results.difference >= 0 ? "text-green-600" : "text-destructive"}`}
                                 title={formatNumber(results.difference)}
                               >
                                 ({results.difference >= 0 ? "+" : ""}

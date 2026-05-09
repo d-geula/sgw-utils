@@ -505,7 +505,7 @@ export function MothershipCalculator({
                           {formatCompact(results.totalPower)}
                           {results.difference !== null ? (
                             <span
-                              className={`ml-2 text-lg ${results.difference >= 0 ? "text-green-500" : "text-destructive"}`}
+                              className={`ml-2 text-lg ${results.difference >= 0 ? "text-green-600" : "text-destructive"}`}
                               title={formatNumber(results.difference)}
                             >
                               ({results.difference >= 0 ? "+" : ""}

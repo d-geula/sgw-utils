@@ -203,6 +203,7 @@ function ResultRow({
         <div
           className={cn(
             "text-sm font-semibold",
+            kind === "positive" && value !== 0 ? "text-green-600" : undefined,
             kind === "negative" && value > 0 ? "text-destructive" : undefined,
           )}
           title={formatNumber(value)}
@@ -522,15 +523,16 @@ export function IncomeCalculator({
 
           <div className="flex h-full flex-col gap-3">
             <div
-              className="flex flex-1 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20"
+              className="relative min-h-24 flex-1 cursor-pointer rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               onClick={() => {
                 void copyTotalPerTurn()
               }}
               onKeyDown={handleTotalKeyDown}
               role="button"
               tabIndex={0}
+              title={`Copy ${results.totalPerTurn}`}
             >
-              <div className="flex w-full items-start justify-between gap-3">
+              <div className="max-w-[calc(100%-6rem)]">
                 <div className="min-w-0">
                   <div className="mb-1 text-sm text-muted-foreground">
                     Total / Turn
@@ -545,7 +547,7 @@ export function IncomeCalculator({
                         className={cn(
                           "ml-2 text-lg",
                           results.difference >= 0
-                            ? "text-green-500"
+                            ? "text-green-600"
                             : "text-destructive",
                         )}
                         title={formatNumber(results.difference)}
@@ -556,15 +558,15 @@ export function IncomeCalculator({
                     ) : null}
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                <div className="absolute right-4 top-4 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                   {copiedTotal ? (
                     <>
-                      <Check />
+                      <Check className="size-4" />
                       Copied
                     </>
                   ) : (
                     <>
-                      <Copy />
+                      <Copy className="size-4" />
                       Copy raw
                     </>
                   )}

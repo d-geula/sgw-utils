@@ -44,7 +44,7 @@ For positive, negative, or status indicators, use Badge variants, semantic token
 
 ```tsx
 <span className="text-emerald-600">+20.1%</span>
-<span className="text-green-500">Active</span>
+<span className="text-green-600">Active</span>
 <span className="text-red-600">-3.2%</span>
 ```
 

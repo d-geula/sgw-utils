@@ -339,7 +339,7 @@ export function PlanetUpgradeCalculator({
                     </div>
                     <div className="text-2xl font-bold" title={formatNumber(results.projectedValue)}>
                       {formatSmart(results.projectedValue)}
-                      <span className="text-lg text-green-500 ml-2" title={formatNumber(results.valueIncrease)}>
+                      <span className="text-lg text-green-600 ml-2" title={formatNumber(results.valueIncrease)}>
                         (+{formatSmart(results.valueIncrease)})
                       </span>
                     </div>
