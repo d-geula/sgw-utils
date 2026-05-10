@@ -1,5 +1,5 @@
 import { type FormEvent, type KeyboardEvent, useState } from "react"
-import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Copy, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -22,6 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface CalculationResults {
   weaponPower: number
@@ -41,8 +46,8 @@ interface CalculatorProps {
   displayMode?: "accordion" | "standalone"
 }
 
-const WEAPON_STRENGTH = 4_975_000
-const SHIELD_STRENGTH = 7_475_000
+const WEAPON_STRENGTH = 5_000_000
+const SHIELD_STRENGTH = 7_500_000
 const FLEET_STRENGTH = 1_156_000
 const TECH_TIER_OPTIONS = Array.from({ length: 11 }, (_, index) => ({
   label: index === 0 ? "None" : `Tier ${index} (+${index * 3}%)`,
@@ -118,6 +123,12 @@ const getShieldUpgradeCost = (
         (12_000 * (desiredCapacity - 1) + 5_000))) /
     2,
   )
+}
+
+const getTechBoostedCapacity = (capacity: number, techTier: string) => {
+  const techMultiplier = 1 + Number(techTier) * 0.03
+
+  return Math.floor(capacity * techMultiplier)
 }
 
 function CapacityInput({
@@ -268,10 +279,18 @@ export function MothershipCalculator({
       parsedDesiredShields > 0 ? parsedDesiredShields : parsedRawShields
     const targetFleetCapacity =
       parsedDesiredFleet > 0 ? parsedDesiredFleet : parsedRawFleet
-    const techMultiplier = 1 + Number(techTier) * 0.03
-    const weaponPower = targetWeaponCapacity * WEAPON_STRENGTH * techMultiplier
-    const shieldPower = targetShieldCapacity * SHIELD_STRENGTH * techMultiplier
-    const fleetPower = targetFleetCapacity * FLEET_STRENGTH * techMultiplier
+    const maxWeaponCapacity = getTechBoostedCapacity(
+      targetWeaponCapacity,
+      techTier,
+    )
+    const maxShieldCapacity = getTechBoostedCapacity(
+      targetShieldCapacity,
+      techTier,
+    )
+    const maxFleetCapacity = getTechBoostedCapacity(targetFleetCapacity, techTier)
+    const weaponPower = maxWeaponCapacity * WEAPON_STRENGTH
+    const shieldPower = maxShieldCapacity * SHIELD_STRENGTH
+    const fleetPower = maxFleetCapacity * FLEET_STRENGTH
     const basePower = weaponPower + shieldPower + fleetPower
     const totalPower = Math.floor(basePower)
     const difference =
@@ -396,7 +415,24 @@ export function MothershipCalculator({
 
               <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="mothership-tech-tier">Tech Bonus</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="mothership-tech-tier">Tech Bonus</Label>
+                    <Tooltip>
+                      <TooltipTrigger
+                        type="button"
+                        delay={150}
+                        className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                        aria-label="How Tech Bonus affects power"
+                      >
+                        <HelpCircle className="size-4" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Tech Bonus is only used to estimate power from fully
+                        maxed capacity after the bonus. Upgrade costs still use
+                        the entered raw and desired capacities.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Select
                     value={techTier}
                     onValueChange={(value) => {
