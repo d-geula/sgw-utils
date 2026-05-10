@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from "react"
-import { ChevronDown, ChevronUp } from "lucide-react"
+import { type FormEvent, type KeyboardEvent, useState } from "react"
+import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,94 +22,199 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
-// Planet type configurations
-// Formula: Next Cost (millions) = (Next Level × step) + Planet Offset
+const PLANET_SIZES = {
+  tiny: { label: "Tiny", multiplier: 1 },
+  verySmall: { label: "Very Small", multiplier: 2 },
+  small: { label: "Small", multiplier: 3 },
+  normal: { label: "Normal", multiplier: 4 },
+  aboveAverage: { label: "Above Average", multiplier: 5 },
+  large: { label: "Large", multiplier: 6 },
+  huge: { label: "Huge", multiplier: 7 },
+  massive: { label: "Massive", multiplier: 8 },
+  mindblowing: { label: "Mindblowing", multiplier: 9 },
+} as const
+
 const PLANET_TYPES = {
-  income: {
-    label: "Income",
-    contributionLabel: "Income",
-    facilitiesLabel: "Income Facilities",
-    offset: -0.49,
-    stepValue: 5_000,
-    valuePerUpgrade: 8_640_000,
-  },
-  unitProduction: {
-    label: "Unit Production",
-    contributionLabel: "Unit Production",
-    facilitiesLabel: "Production Facilities",
-    offset: 10.35,
-    stepValue: 5_000,
-    valuePerUpgrade: 2,
+  attack: {
+    label: "Attack",
+    contributionLabel: "Attack",
+    facilitiesLabel: "Attack Facilities",
+    costIncrement: 3_000,
+    costLevelOffset: 0,
+    constant: 150_000,
   },
   defence: {
     label: "Defence",
     contributionLabel: "Defence",
     facilitiesLabel: "Defence Facilities",
-    offset: 0,
-    stepValue: 3_000,
-    valuePerUpgrade: 800000,
+    costIncrement: 3_000,
+    costLevelOffset: 0,
+    constant: 160_000,
+  },
+  covert: {
+    label: "Covert/Anti-Covert",
+    contributionLabel: "Covert/Anti-Covert",
+    facilitiesLabel: "Covert Facilities",
+    costIncrement: 9_000,
+    costLevelOffset: 0,
+    constant: 905_096,
+  },
+  unitProduction: {
+    label: "Unit Production",
+    contributionLabel: "Unit Production",
+    facilitiesLabel: "Production Facilities",
+    costIncrement: 5_000,
+    // Inferred from a Tiny UP purchase: contribution facilities and cost levels
+    // do not appear to use the same base count for this planet type.
+    costLevelOffset: 1_401,
+    constant: null,
+  },
+  income: {
+    label: "Income",
+    contributionLabel: "Income",
+    facilitiesLabel: "Income Facilities",
+    costIncrement: 5_000,
+    costLevelOffset: 0,
+    constant: 960_000,
   },
 } as const
 
+type PlanetSize = keyof typeof PLANET_SIZES
 type PlanetType = keyof typeof PLANET_TYPES
 
 interface CalculationResults {
-  currentLevel: number
-  targetLevel: number
-  nextUpgradeCost: number
+  currentFacilities: number
+  finalFacilities: number
+  upgradesToBuy: number
   totalCost: number
-  projectedValue: number
-  valueIncrease: number
+  projectedContribution: number
+  contributionIncrease: number
 }
 
 const formatNumber = (num: number): string => {
   return num.toLocaleString("en-US", { maximumFractionDigits: 2 })
 }
 
-// Compact format for large numbers (supports up to quintillions)
 const formatCompact = (num: number): string => {
   const abs = Math.abs(num)
   const sign = num < 0 ? "-" : ""
-  
-  if (abs >= 1e18) {
-    return sign + (abs / 1e18).toFixed(2) + "Qi" // Quintillion
-  }
-  if (abs >= 1e15) {
-    return sign + (abs / 1e15).toFixed(2) + "Q" // Quadrillion
-  }
-  if (abs >= 1e12) {
-    return sign + (abs / 1e12).toFixed(2) + "T" // Trillion
-  }
-  if (abs >= 1e9) {
-    return sign + (abs / 1e9).toFixed(2) + "B" // Billion
-  }
-  if (abs >= 1e6) {
-    return sign + (abs / 1e6).toFixed(2) + "M" // Million
-  }
-  if (abs >= 1e3) {
-    return sign + (abs / 1e3).toFixed(2) + "K" // Thousand
-  }
-  return num.toFixed(2)
-}
 
-// Smart format: use compact for large numbers, full for smaller ones
-const formatSmart = (num: number): string => {
-  const abs = Math.abs(num)
-  // Use compact format for numbers >= 1 billion
-  if (abs >= 1e9) {
-    return formatCompact(num)
-  }
+  if (abs >= 1e18) return sign + (abs / 1e18).toFixed(2) + "Qi"
+  if (abs >= 1e15) return sign + (abs / 1e15).toFixed(2) + "Q"
+  if (abs >= 1e12) return sign + (abs / 1e12).toFixed(2) + "T"
+  if (abs >= 1e9) return sign + (abs / 1e9).toFixed(2) + "B"
+  if (abs >= 1e6) return sign + (abs / 1e6).toFixed(2) + "M"
+
   return formatNumber(num)
 }
 
-const roundDownTwoDecimals = (num: number): number => {
-  return Math.floor(num * 100) / 100
+const parseNonNegativeNumber = (value: string): number | null => {
+  const normalized = value.replace(/,/g, "").trim()
+  if (!normalized) {
+    return null
+  }
+
+  const parsed = Number(normalized)
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null
+  }
+
+  return parsed
 }
 
-const roundDownToMillionCents = (num: number): number => {
-  const inMillions = num / 1_000_000
-  return roundDownTwoDecimals(inMillions) * 1_000_000
+const getContributionPerFacility = (
+  planetType: PlanetType,
+  planetSize: PlanetSize,
+) => {
+  const sizeMultiplier = PLANET_SIZES[planetSize].multiplier
+  const config = PLANET_TYPES[planetType]
+
+  if (planetType === "unitProduction") {
+    return 1 + sizeMultiplier / 10
+  }
+
+  return sizeMultiplier * (config.constant ?? 0)
+}
+
+const getFacilitiesFromContribution = (
+  contribution: number,
+  planetType: PlanetType,
+  planetSize: PlanetSize,
+) => {
+  const contributionPerFacility = getContributionPerFacility(planetType, planetSize)
+
+  if (contributionPerFacility <= 0) {
+    return 0
+  }
+
+  return Math.max(0, Math.ceil(contribution / contributionPerFacility))
+}
+
+const getContributionFromFacilities = (
+  facilities: number,
+  planetType: PlanetType,
+  planetSize: PlanetSize,
+) => {
+  const contribution = facilities * getContributionPerFacility(planetType, planetSize)
+
+  if (planetType === "unitProduction") {
+    return Math.round(contribution)
+  }
+
+  return contribution
+}
+
+const getTotalUpgradeCost = (
+  currentFacilities: number,
+  targetFacilities: number,
+  costIncrement: number,
+  costLevelOffset: number,
+) => {
+  const upgradesToBuy = targetFacilities - currentFacilities
+  const firstUpgradeCost = (currentFacilities + costLevelOffset) * costIncrement
+  const finalUpgradeCost =
+    (targetFacilities - 1 + costLevelOffset) * costIncrement
+
+  return (upgradesToBuy / 2) * (firstUpgradeCost + finalUpgradeCost)
+}
+
+function ResultRow({
+  label,
+  value,
+  delta,
+  kind = "base",
+}: {
+  label: string
+  value: number
+  delta?: number
+  kind?: "base" | "positive"
+}) {
+  const displayValue =
+    kind === "positive" && value !== 0
+      ? `+${formatCompact(value)}`
+      : formatCompact(value)
+
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-border/60 py-2 last:border-b-0">
+      <div className="min-w-0 text-sm text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "text-right text-sm font-semibold",
+          kind === "positive" && value !== 0 ? "text-green-600" : undefined,
+        )}
+        title={formatNumber(value)}
+      >
+        {displayValue}
+        {delta !== undefined && delta !== 0 ? (
+          <span className="ml-1 text-green-600" title={formatNumber(delta)}>
+            (+{formatCompact(delta)})
+          </span>
+        ) : null}
+      </div>
+    </div>
+  )
 }
 
 interface CalculatorProps {
@@ -123,62 +228,103 @@ export function PlanetUpgradeCalculator({
 }: CalculatorProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const isStandalone = displayMode === "standalone"
-  const [planetType, setPlanetType] = useState<PlanetType>("income")
-  const [currentValue, setCurrentValue] = useState("")
-  const [upgradesToBuy, setUpgradesToBuy] = useState("")
+  const isExpanded = isStandalone || isOpen
+  const [planetType, setPlanetType] = useState<PlanetType>("attack")
+  const [planetSize, setPlanetSize] = useState<PlanetSize>("mindblowing")
+  const [currentContribution, setCurrentContribution] = useState("")
+  const [desiredContribution, setDesiredContribution] = useState("")
   const [results, setResults] = useState<CalculationResults | null>(null)
-  const [isTotalCostCopied, setIsTotalCostCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [copiedTotal, setCopiedTotal] = useState(false)
 
   const config = PLANET_TYPES[planetType]
-  const COST_INCREMENT = config.stepValue / 1_000_000
+  const sizeConfig = PLANET_SIZES[planetSize]
 
   const calculate = () => {
-    const { offset, valuePerUpgrade } = config
+    setError(null)
 
-    // Remove commas from input before parsing
-    const current = parseFloat(currentValue.replace(/,/g, "")) || 0
-    const n = parseInt(upgradesToBuy.replace(/,/g, "")) || 0
+    const current = parseNonNegativeNumber(currentContribution)
+    const desired = parseNonNegativeNumber(desiredContribution)
 
-    if (n <= 0) {
+    if (current === null || desired === null) {
+      setError("Enter valid non-negative current and desired contributions.")
       setResults(null)
       return
     }
 
-    // Calculate current level
-    const currentLevel = Math.floor(current / valuePerUpgrade)
-    // Costs are based on the next level being purchased.
-    const startCost = (currentLevel + 1) * COST_INCREMENT + offset
+    const currentFacilities = getFacilitiesFromContribution(
+      current,
+      planetType,
+      planetSize,
+    )
+    const targetFacilities = getFacilitiesFromContribution(
+      desired,
+      planetType,
+      planetSize,
+    )
+    if (targetFacilities <= currentFacilities) {
+      setError("Desired contribution must exceed current contribution.")
+      setResults(null)
+      return
+    }
 
-    // Calculate total cost using arithmetic series formula
-    // Sum = (n/2) * (2a + (n-1)d) where a = startCost, d = COST_INCREMENT
-    const a = startCost
-    const d = COST_INCREMENT
-    const totalPriceMillions = (n / 2) * (2 * a + (n - 1) * d)
+    const normalizedCurrent = getContributionFromFacilities(
+      currentFacilities,
+      planetType,
+      planetSize,
+    )
+    const normalizedDesired = getContributionFromFacilities(
+      targetFacilities,
+      planetType,
+      planetSize,
+    )
+    setCurrentContribution(formatNumber(normalizedCurrent))
+    setDesiredContribution(formatNumber(normalizedDesired))
 
-    // Calculate future stats
-    const futureLevel = currentLevel + n
-    const futureValue = futureLevel * valuePerUpgrade
-    const valueIncrease = futureValue - current
-
-    // Next upgrade cost after buying n upgrades (the cost of upgrade n+1)
-    const nextUpgradeCostAfterPurchase = a + n * d
+    const upgradesToBuy = targetFacilities - currentFacilities
+    const finalFacilities = currentFacilities + upgradesToBuy
+    const projectedContribution = getContributionFromFacilities(
+      finalFacilities,
+      planetType,
+      planetSize,
+    )
 
     setResults({
-      currentLevel,
-      targetLevel: futureLevel,
-      nextUpgradeCost: nextUpgradeCostAfterPurchase * 1_000_000,
-      totalCost: totalPriceMillions * 1_000_000,
-      projectedValue: futureValue,
-      valueIncrease,
+      currentFacilities,
+      finalFacilities,
+      upgradesToBuy,
+      totalCost: getTotalUpgradeCost(
+        currentFacilities,
+        finalFacilities,
+        config.costIncrement,
+        config.costLevelOffset,
+      ),
+      projectedContribution,
+      contributionIncrease: Math.max(projectedContribution - current, 0),
     })
   }
 
-  // Clear results when planet type changes
   const handlePlanetTypeChange = (value: PlanetType | null) => {
     if (!value) {
       return
     }
+
     setPlanetType(value)
+    setCurrentContribution("")
+    setDesiredContribution("")
+    setError(null)
+    setResults(null)
+  }
+
+  const handlePlanetSizeChange = (value: PlanetSize | null) => {
+    if (!value) {
+      return
+    }
+
+    setPlanetSize(value)
+    setCurrentContribution("")
+    setDesiredContribution("")
+    setError(null)
     setResults(null)
   }
 
@@ -187,166 +333,198 @@ export function PlanetUpgradeCalculator({
     calculate()
   }
 
-  const copyRawValue = async (value: number) => {
-    if (typeof navigator === "undefined" || !navigator.clipboard) {
+  const copyTotalCost = async () => {
+    if (!results) {
       return
     }
-    try {
-      await navigator.clipboard.writeText(value.toString())
-      setIsTotalCostCopied(true)
-      window.setTimeout(() => {
-        setIsTotalCostCopied(false)
-      }, 1500)
-    } catch {
-      setIsTotalCostCopied(false)
+
+    await navigator.clipboard.writeText(String(results.totalCost))
+    setCopiedTotal(true)
+    window.setTimeout(() => setCopiedTotal(false), 1500)
+  }
+
+  const handleTotalKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      void copyTotalCost()
     }
   }
 
   const description =
-    "Calculate upgrade costs and projected values for different planet types."
-  const disclaimer = "Probably only accurate for max size planets; needs work."
-  const disclaimerContent = disclaimer ? (
+    "Calculate planet facility upgrades from current and desired contribution."
+  const disclaimer =
+    "All planet type/size values should be correct (AFAIK) except very minor inaccuracies for unit production. Planets are annoying to test everything on."
+  const disclaimerContent = (
     <p className="mt-1 text-xs text-amber-100/80">
-      <span className="font-semibold text-amber-100">Disclaimer:</span>{" "}
+      <span className="font-semibold text-amber-100">Note:</span>{" "}
       {disclaimer}
     </p>
-  ) : null
+  )
+
+  const projectedLabel =
+    planetType === "income"
+      ? "Projected Planet Income"
+      : "Projected Planet Contribution"
 
   const formContent = (
-    <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Planet Type Selector */}
-              <div className="space-y-2">
-                <Label htmlFor="planet-type">Planet Type</Label>
-                <Select value={planetType} onValueChange={handlePlanetTypeChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select planet type">
-                      {config.label}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent
-                    side="bottom"
-                    alignItemWithTrigger={false}
-                    collisionAvoidance={{ side: "none" }}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="planet-type">Planet Type</Label>
+          <Select value={planetType} onValueChange={handlePlanetTypeChange}>
+            <SelectTrigger id="planet-type" className="w-full">
+              <SelectValue placeholder="Select planet type">
+                {config.label}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent
+              side="bottom"
+              alignItemWithTrigger={false}
+              collisionAvoidance={{ side: "none" }}
+            >
+              {Object.entries(PLANET_TYPES).map(([key, value]) => (
+                <SelectItem key={key} value={key}>
+                  {value.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="planet-size">Planet Size</Label>
+          <Select value={planetSize} onValueChange={handlePlanetSizeChange}>
+            <SelectTrigger id="planet-size" className="w-full">
+              <SelectValue placeholder="Select planet size">
+                {sizeConfig.label}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent
+              side="bottom"
+              alignItemWithTrigger={false}
+              collisionAvoidance={{ side: "none" }}
+            >
+              {Object.entries(PLANET_SIZES).map(([key, value]) => (
+                <SelectItem key={key} value={key}>
+                  {value.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="current-contribution">
+            Current Planet Contribution
+          </Label>
+          <Input
+            id="current-contribution"
+            type="text"
+            value={currentContribution}
+            onChange={(e) => setCurrentContribution(e.target.value)}
+            placeholder="0"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="desired-contribution">
+            Desired Planet Contribution
+          </Label>
+          <Input
+            id="desired-contribution"
+            type="text"
+            value={desiredContribution}
+            onChange={(e) => setDesiredContribution(e.target.value)}
+            placeholder="0"
+          />
+        </div>
+      </div>
+
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+
+      <Button type="submit" className="w-full">
+        Calculate
+      </Button>
+
+      {results ? (
+        <div className="grid items-stretch gap-4 border-t pt-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="rounded-lg border border-border bg-muted/20 p-4">
+            <ResultRow
+              label={config.facilitiesLabel}
+              value={results.finalFacilities}
+              delta={results.upgradesToBuy}
+            />
+            <ResultRow
+              label="Upgrades to Buy"
+              value={results.upgradesToBuy}
+            />
+            <ResultRow
+              label="Contribution Increase"
+              value={results.contributionIncrease}
+              kind="positive"
+            />
+          </div>
+
+          <div className="flex flex-col gap-4 self-start">
+            <div
+              className="relative min-h-20 cursor-pointer rounded-lg bg-muted/30 p-4 ring-1 ring-border transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              onClick={() => void copyTotalCost()}
+              onKeyDown={handleTotalKeyDown}
+              role="button"
+              tabIndex={0}
+              title={`Copy ${results.totalCost}`}
+            >
+              <div className="max-w-[calc(100%-6rem)]">
+                <div className="mb-1 text-sm text-muted-foreground">
+                  Total Cost
+                </div>
+                <div
+                  className="text-2xl font-bold"
+                  title={formatNumber(results.totalCost)}
+                >
+                  {formatCompact(results.totalCost)}
+                </div>
+                <div className="absolute right-4 top-4 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                  {copiedTotal ? (
+                    <>
+                      <Check className="size-4" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-4" />
+                      Copy raw
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20">
+              <div className="mb-1 text-sm text-muted-foreground">
+                {projectedLabel}
+              </div>
+              <div
+                className="text-2xl font-bold"
+                title={formatNumber(results.projectedContribution)}
+              >
+                {formatCompact(results.projectedContribution)}
+                {results.contributionIncrease > 0 ? (
+                  <span
+                    className="ml-2 text-lg text-green-600"
+                    title={formatNumber(results.contributionIncrease)}
                   >
-                    {Object.entries(PLANET_TYPES).map(([key, value]) => (
-                      <SelectItem key={key} value={key}>
-                        {value.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    (+{formatCompact(results.contributionIncrease)})
+                  </span>
+                ) : null}
               </div>
-
-              {/* Input Fields */}
-              <div className="grid items-end gap-y-4 sm:grid-cols-2 sm:gap-x-8">
-                <div className="space-y-2">
-                  <Label htmlFor="current-value" className="block min-h-[1.25rem]">
-                    Current Planet {config.contributionLabel}
-                  </Label>
-                  <Input
-                    id="current-value"
-                    type="text"
-                    value={currentValue}
-                    onChange={(e) => setCurrentValue(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="upgrades" className="block min-h-[1.25rem]">
-                    Upgrades to Buy
-                  </Label>
-                  <Input
-                    id="upgrades"
-                    type="text"
-                    value={upgradesToBuy}
-                    onChange={(e) => setUpgradesToBuy(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full">
-                Calculate
-              </Button>
-
-              {/* Results */}
-              {results && (
-                <div className="space-y-4 border-t pt-6">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-lg bg-muted/50 p-4">
-                      <div className="text-xs text-muted-foreground mb-1">
-                        Current {config.facilitiesLabel}
-                      </div>
-                      <div className="text-2xl font-bold">
-                        {formatNumber(results.currentLevel)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-4">
-                      <div className="text-xs text-muted-foreground mb-1">
-                        Target {config.facilitiesLabel}
-                      </div>
-                      <div className="text-2xl font-bold">
-                        {formatNumber(results.targetLevel)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div
-                      className="rounded-lg bg-primary/10 p-4 ring-1 ring-primary/20 cursor-pointer"
-                      onClick={() => {
-                        void copyRawValue(roundDownToMillionCents(results.totalCost))
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault()
-                          void copyRawValue(roundDownToMillionCents(results.totalCost))
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Total Cost
-                      </div>
-                      <div
-                        className="text-2xl font-bold"
-                        title={`${roundDownToMillionCents(results.totalCost)} (click to copy raw)`}
-                      >
-                        {formatSmart(roundDownToMillionCents(results.totalCost))}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {isTotalCostCopied ? "Copied raw value" : "Click to copy raw value"}
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-4">
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Next Upgrade Cost
-                      </div>
-                      <div
-                        className="text-xl font-bold"
-                        title={formatNumber(roundDownToMillionCents(results.nextUpgradeCost))}
-                      >
-                        {formatCompact(roundDownToMillionCents(results.nextUpgradeCost))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg bg-chart-3/10 p-4 ring-1 ring-chart-3/20">
-                    <div className="text-sm text-muted-foreground mb-1">
-                      Projected Planet {config.contributionLabel}
-                    </div>
-                    <div className="text-2xl font-bold" title={formatNumber(results.projectedValue)}>
-                      {formatSmart(results.projectedValue)}
-                      <span className="text-lg text-green-600 ml-2" title={formatNumber(results.valueIncrease)}>
-                        (+{formatSmart(results.valueIncrease)})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </form>
   )
 
   if (isStandalone) {
@@ -367,24 +545,22 @@ export function PlanetUpgradeCalculator({
         <CollapsibleTrigger className="w-full text-left">
           <CardHeader className="cursor-pointer select-none">
             <div className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <CardTitle>Planet Upgrades</CardTitle>
                 <CardDescription>{description}</CardDescription>
-                {isOpen ? disclaimerContent : null}
+                {isExpanded ? disclaimerContent : null}
               </div>
-              {isOpen ? (
-                <ChevronUp className="size-5 text-muted-foreground shrink-0" />
+              {isExpanded ? (
+                <ChevronUp className="size-5 shrink-0 text-muted-foreground" />
               ) : (
-                <ChevronDown className="size-5 text-muted-foreground shrink-0" />
+                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
               )}
             </div>
           </CardHeader>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <CardContent className="space-y-6">
-            {formContent}
-          </CardContent>
+          <CardContent className="space-y-6">{formContent}</CardContent>
         </CollapsibleContent>
       </Card>
     </Collapsible>
