@@ -4,6 +4,7 @@ import {
   CovertActionCalculator,
 } from "@/components/calculators/covert-action-calculator"
 import { PlanetUpgradeCalculator } from "@/components/calculators/planet-upgrade-calculator"
+import { SabotageCalculator } from "@/components/calculators/sabotage-calculator"
 import { SkillUpgradeCalculator } from "@/components/calculators/skill-upgrade-calculator"
 import { IncomeCalculator } from "@/components/calculators/income-calculator"
 import { MothershipCalculator } from "@/components/calculators/mothership-calculator"
@@ -100,6 +101,18 @@ const CATEGORIES = [
         id: "skill-upgrade",
         title: "Intel/Counter-Intel Skill",
         Component: SkillUpgradeCalculator,
+      },
+    ],
+  },
+  {
+    id: "gameplay",
+    title: "Gameplay",
+    description: "Tools for planning gameplay actions.",
+    calculators: [
+      {
+        id: "sabotage",
+        title: "Sabotage",
+        Component: SabotageCalculator,
       },
     ],
   },
