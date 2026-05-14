@@ -176,8 +176,14 @@ function ActionCalculator({
     displayBaseAction * (displayTechMultiplier - 1)
   const displayRaceBonusAction =
     (displayBaseAction + displayTechBonusAction) * (displayRaceBonus / 100)
+  const displayModifiedAction =
+    (displayBaseAction +
+      displayTechBonusAction +
+      displayRaceBonusAction +
+      displayUnits) *
+    FINAL_MODIFIER
   const displayPlanetContributionCap =
-    (displayBaseAction + displayTechBonusAction + displayRaceBonusAction) / 2
+    displayModifiedAction / 2
 
   const calculate = () => {
     setError(null)
@@ -214,8 +220,10 @@ function ActionCalculator({
     const techMultiplier = TECH_BONUS_OPTIONS[techBonus].multiplier
     const techBonusAction = baseAction * (techMultiplier - 1)
     const raceBonusAction = (baseAction + techBonusAction) * (raceBonusValue / 100)
-    const planetContributionCap =
-      (baseAction + techBonusAction + raceBonusAction) / 2
+    const modifiedAction =
+      (baseAction + techBonusAction + raceBonusAction + parsedUnits) *
+      FINAL_MODIFIER
+    const planetContributionCap = modifiedAction / 2
     const planetContributionSummary: PlanetContributionSummary | null =
       getPlanetContributionSummary(
         planetContributions,
@@ -230,12 +238,7 @@ function ActionCalculator({
 
     const planetContributionAction = planetContributionSummary.effectiveTotal
     const totalAction = Math.floor(
-      (baseAction +
-        techBonusAction +
-        raceBonusAction +
-        planetContributionAction +
-        parsedUnits) *
-      FINAL_MODIFIER,
+      modifiedAction + planetContributionAction,
     )
     const modifierBonusAction =
       totalAction -
@@ -413,13 +416,13 @@ function ActionCalculator({
                       kind="positive"
                     />
                     <ResultRow
-                      label="Planet Contribution"
-                      value={results.planetContributionAction}
+                      label="Modifier Bonus"
+                      value={results.modifierBonusAction}
                       kind="positive"
                     />
                     <ResultRow
-                      label="Modifier Bonus"
-                      value={results.modifierBonusAction}
+                      label="Planet Contribution"
+                      value={results.planetContributionAction}
                       kind="positive"
                     />
                   </div>
