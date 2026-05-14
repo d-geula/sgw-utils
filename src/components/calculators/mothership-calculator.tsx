@@ -46,8 +46,8 @@ interface CalculatorProps {
   displayMode?: "accordion" | "standalone"
 }
 
-const WEAPON_STRENGTH = 5_000_000
-const SHIELD_STRENGTH = 7_500_000
+const WEAPON_STRENGTH = 4_975_000
+const SHIELD_STRENGTH = 7_475_000
 const FLEET_STRENGTH = 1_156_000
 const TECH_TIER_OPTIONS = Array.from({ length: 11 }, (_, index) => ({
   label: index === 0 ? "None" : `Tier ${index} (+${index * 3}%)`,
@@ -347,7 +347,7 @@ export function MothershipCalculator({
   }
 
   const description = "Calculate mothership power and capacity upgrade costs."
-  const disclaimer = ""
+  const disclaimer = "Currently only accurate for ascended accounts (pretty sure). Might fix at some point if I can be arsed."
   const disclaimerContent = disclaimer ? (
     <p className="mt-1 text-xs text-amber-100/80">
       <span className="font-semibold text-amber-100">Disclaimer:</span>{" "}
