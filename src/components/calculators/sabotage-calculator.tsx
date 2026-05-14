@@ -22,6 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  createDefaultPlanetContributions,
+  getPlanetContributionSummary,
+  type PlanetContributionSummary,
+} from "@/components/calculators/planet-contributions"
+import {
+  PlanetContributionsInput,
+} from "@/components/calculators/planet-contributions-input"
 
 interface CalculatorProps {
   defaultOpen?: boolean
@@ -34,6 +42,7 @@ interface CalculationResults {
   spiesRemainingFailure: number
   spiesLostSuccess: number
   spiesLostFailure: number
+  planetContributionAction: number
 }
 
 const FINAL_MULTIPLIER = 2
@@ -88,6 +97,15 @@ const parseNonNegativeNumber = (value: string): number | null => {
   return parsed
 }
 
+const parseNonNegativeNumberOrZero = (value: string): number | null => {
+  const normalized = value.replace(/,/g, "").trim()
+  if (!normalized) {
+    return 0
+  }
+
+  return parseNonNegativeNumber(value)
+}
+
 const getCovertActionPerSpy = (
   covertLevel: number,
   techMultiplier: number,
@@ -98,6 +116,65 @@ const getCovertActionPerSpy = (
   const raceBonus = (base + techBonus) * (raceBonusPercent / 100)
 
   return (base + techBonus + raceBonus + 1) * FINAL_MULTIPLIER
+}
+
+const getSpiesRequired = (
+  enemyAdjusted: number,
+  perSpy: number,
+  planetContributions: string[],
+): { spiesRequired: number; planetContributionAction: number } | null => {
+  const getEffectivePlanetContribution = (
+    spies: number,
+  ): PlanetContributionSummary | null => {
+    return getPlanetContributionSummary(
+      planetContributions,
+      (spies * perSpy) / 2,
+    )
+  }
+
+  const hasEnoughAction = (spies: number) => {
+    const planetContributionSummary = getEffectivePlanetContribution(spies)
+
+    if (planetContributionSummary === null) {
+      return null
+    }
+
+    return spies * perSpy + planetContributionSummary.effectiveTotal >
+      enemyAdjusted
+  }
+
+  if (getEffectivePlanetContribution(1) === null) {
+    return null
+  }
+
+  let upperBound = Math.max(1, Math.floor(enemyAdjusted / perSpy) + 1)
+
+  while (hasEnoughAction(upperBound) === false) {
+    upperBound *= 2
+  }
+
+  let lowerBound = 1
+  while (lowerBound < upperBound) {
+    const midpoint = Math.floor((lowerBound + upperBound) / 2)
+
+    if (hasEnoughAction(midpoint)) {
+      upperBound = midpoint
+    } else {
+      lowerBound = midpoint + 1
+    }
+  }
+
+  const spiesRequired = lowerBound
+  const planetContributionSummary = getEffectivePlanetContribution(spiesRequired)
+
+  if (planetContributionSummary === null) {
+    return null
+  }
+
+  return {
+    spiesRequired,
+    planetContributionAction: planetContributionSummary.effectiveTotal,
+  }
 }
 
 function ResultRow({
@@ -123,6 +200,17 @@ function ResultRow({
   )
 }
 
+function ValueRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-border/60 py-2 last:border-b-0">
+      <div className="min-w-0 text-sm text-muted-foreground">{label}</div>
+      <div className="text-right text-sm font-semibold" title={formatNumber(value)}>
+        {formatCompact(value)}
+      </div>
+    </div>
+  )
+}
+
 export function SabotageCalculator({
   defaultOpen = false,
   displayMode = "accordion",
@@ -134,9 +222,31 @@ export function SabotageCalculator({
   const [techBonus, setTechBonus] = useState<TechBonusKey>("tier2")
   const [raceBonusPercent, setRaceBonusPercent] = useState("")
   const [realmAlert, setRealmAlert] = useState<RealmAlertKey>("critical")
+  const [planetContributions, setPlanetContributions] = useState(() =>
+    createDefaultPlanetContributions(),
+  )
   const [results, setResults] = useState<CalculationResults | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copiedTotal, setCopiedTotal] = useState(false)
+  const displayCovertLevel = parseNonNegativeNumberOrZero(covertLevel) ?? 0
+  const displayRaceBonus = parseNonNegativeNumberOrZero(raceBonusPercent) ?? 0
+  const displayPerSpy = getCovertActionPerSpy(
+    displayCovertLevel,
+    TECH_BONUS_OPTIONS[techBonus].multiplier,
+    displayRaceBonus,
+  )
+  const displayEnemyCovertAction =
+    parseNonNegativeNumberOrZero(enemyCovertAction) ?? 0
+  const displayEnemyAdjusted =
+    displayEnemyCovertAction * REALM_ALERT_MULTIPLIERS[realmAlert].multiplier
+  const displaySabotageEstimate = getSpiesRequired(
+    displayEnemyAdjusted,
+    displayPerSpy,
+    planetContributions,
+  )
+  const displaySpiesRequired = displaySabotageEstimate?.spiesRequired ?? 1
+  const displayPlanetContributionCap =
+    (displaySpiesRequired * displayPerSpy) / 2
 
   const calculate = () => {
     setError(null)
@@ -164,7 +274,22 @@ export function SabotageCalculator({
       TECH_BONUS_OPTIONS[techBonus].multiplier,
       parsedRaceBonus,
     )
-    const spiesRequired = Math.floor(enemyAdjusted / perSpy) + 1
+    const sabotageEstimate = getSpiesRequired(
+      enemyAdjusted,
+      perSpy,
+      planetContributions,
+    )
+
+    if (sabotageEstimate === null) {
+      setError("Enter valid non-negative numbers.")
+      setResults(null)
+      return
+    }
+
+    const {
+      spiesRequired,
+      planetContributionAction,
+    } = sabotageEstimate
     const spiesLostSuccess = Math.floor(spiesRequired * 0.05)
     const spiesLostFailure = Math.floor(spiesRequired * 0.5)
 
@@ -174,6 +299,7 @@ export function SabotageCalculator({
       spiesRemainingFailure: spiesRequired - spiesLostFailure,
       spiesLostSuccess,
       spiesLostFailure,
+      planetContributionAction,
     })
   }
 
@@ -232,7 +358,7 @@ export function SabotageCalculator({
       </div>
 
       <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-8">
-        <div className="grid items-start gap-y-4 sm:grid-cols-2 sm:gap-x-6">
+        <div className="grid items-start gap-y-4 sm:grid-cols-3 sm:gap-x-6">
           <div className="flex flex-col gap-2">
             <Label htmlFor="sabotage-tech-bonus">Tech Bonus</Label>
             <Select
@@ -268,32 +394,43 @@ export function SabotageCalculator({
               placeholder="0"
             />
           </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="sabotage-realm-alert">Realm Alert</Label>
+            <Select
+              value={realmAlert}
+              onValueChange={(value) => setRealmAlert(value as RealmAlertKey)}
+            >
+              <SelectTrigger id="sabotage-realm-alert" className="w-full">
+                <SelectValue placeholder="Select realm alert">
+                  {REALM_ALERT_MULTIPLIERS[realmAlert].label}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent
+                side="bottom"
+                alignItemWithTrigger={false}
+                collisionAvoidance={{ side: "none" }}
+              >
+                {Object.entries(REALM_ALERT_MULTIPLIERS).map(([key, option]) => (
+                  <SelectItem key={key} value={key}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="sabotage-realm-alert">Realm Alert</Label>
-          <Select
-            value={realmAlert}
-            onValueChange={(value) => setRealmAlert(value as RealmAlertKey)}
-          >
-            <SelectTrigger id="sabotage-realm-alert" className="w-full">
-              <SelectValue placeholder="Select realm alert">
-                {REALM_ALERT_MULTIPLIERS[realmAlert].label}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent
-              side="bottom"
-              alignItemWithTrigger={false}
-              collisionAvoidance={{ side: "none" }}
-            >
-              {Object.entries(REALM_ALERT_MULTIPLIERS).map(([key, option]) => (
-                <SelectItem key={key} value={key}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <PlanetContributionsInput
+          id="sabotage-planet-contributions"
+          values={planetContributions}
+          cap={displayPlanetContributionCap}
+          kind="covert"
+          description="Enter each planet's covert contribution."
+          onChange={setPlanetContributions}
+          formatNumber={formatNumber}
+          formatCompact={formatCompact}
+        />
       </div>
 
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
@@ -314,6 +451,10 @@ export function SabotageCalculator({
               label="Spies Remaining (Failure)"
               value={results.spiesRemainingFailure}
               delta={results.spiesLostFailure}
+            />
+            <ValueRow
+              label="Effective Planet Contribution"
+              value={results.planetContributionAction}
             />
           </div>
 
