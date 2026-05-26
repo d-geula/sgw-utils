@@ -1,4 +1,4 @@
-import { ChevronDown, Plus, Trash2 } from "lucide-react"
+import { ChevronDown, HelpCircle, Plus, Trash2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,11 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import {
   createDefaultPlanetContributions,
@@ -27,6 +32,7 @@ const MAX_PLANET_ROWS = 10
 interface PlanetContributionsInputProps {
   id: string
   label?: string
+  helpText?: string
   values: string[]
   cap: number
   valueDivisor?: number
@@ -44,6 +50,7 @@ interface PlanetContributionsInputProps {
 export function PlanetContributionsInput({
   id,
   label = "Effective Planet Contribution",
+  helpText,
   values,
   cap,
   valueDivisor = 1,
@@ -130,7 +137,22 @@ export function PlanetContributionsInput({
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Label htmlFor={id}>{label}</Label>
+        {helpText ? (
+          <Tooltip>
+            <TooltipTrigger
+              type="button"
+              delay={150}
+              className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              aria-label={`About ${label}`}
+            >
+              <HelpCircle className="size-4" />
+            </TooltipTrigger>
+            <TooltipContent>{helpText}</TooltipContent>
+          </Tooltip>
+        ) : null}
+      </div>
       <Popover>
         <PopoverTrigger
           id={id}

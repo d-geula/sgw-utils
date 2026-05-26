@@ -423,6 +423,7 @@ export function SabotageCalculator({
 
         <PlanetContributionsInput
           id="sabotage-planet-contributions"
+          helpText="Not 100% sure if/how this works for sabotage, so use with caution or not at all."
           values={planetContributions}
           cap={displayPlanetContributionCap}
           kind="covert"
