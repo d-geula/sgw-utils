@@ -39,6 +39,7 @@ interface PlanetContributionsInputProps {
   description?: string
   capLabel?: string
   capValueSuffix?: string
+  effectiveTotalValueSuffix?: string
   rawTotalLabel?: string
   rawTotalValueSuffix?: string
   kind?: PlanetContributionKind
@@ -57,6 +58,7 @@ export function PlanetContributionsInput({
   description,
   capLabel = "Per-planet cap",
   capValueSuffix = "",
+  effectiveTotalValueSuffix = " / turn",
   rawTotalLabel = "Raw total",
   rawTotalValueSuffix = "",
   kind = "income",
@@ -125,7 +127,7 @@ export function PlanetContributionsInput({
     hasInvalidValue && hasEnteredDetails
       ? "Check planet details"
       : summary && hasEnteredDetails
-        ? `${formatNumber(Math.round(summary.effectiveTotal))} / turn`
+        ? `${formatNumber(Math.round(summary.effectiveTotal))}${effectiveTotalValueSuffix}`
         : "Click to edit planet details"
 
   const contributionName =

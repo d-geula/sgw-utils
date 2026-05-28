@@ -428,6 +428,7 @@ export function SabotageCalculator({
           cap={displayPlanetContributionCap}
           kind="covert"
           description="Enter each planet's covert contribution."
+          effectiveTotalValueSuffix=""
           onChange={setPlanetContributions}
           formatNumber={formatNumber}
           formatCompact={formatCompact}
